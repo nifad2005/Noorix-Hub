@@ -4,22 +4,23 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BlogCard } from '@/components/blog/BlogCard';
-import type { IBlog } from '@/models/Blog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProductCard } from '@/components/product/ProductCard';
+import type { IProduct } from '@/models/Product';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Loader2, Search } from 'lucide-react';
 
-type BlogSummary = Partial<IBlog> & { _id: string; snippet?: string; };
+type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 const ITEMS_PER_PAGE = 9;
 const CATEGORIES = ["All", "WEB DEVELOPMENT", "ML", "AI"];
+// Statuses will be fetched dynamically
 
-export default function BlogsPage() {
-  const [blogs, setBlogs] = useState<BlogSummary[]>([]);
+export default function ProductsPage() {
+  const [products, setProducts] = useState<ProductSummary[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [allStatuses, setAllStatuses] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  // const [totalPages, setTotalPages] = useState(1); // totalPages might not be needed if using infinite scroll primarily
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -28,24 +29,36 @@ export default function BlogsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedTag, setSelectedTag] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const observer = useRef<IntersectionObserver | null>(null);
-  // const loadMoreRef = useRef<HTMLDivElement | null>(null); // Not strictly needed if lastBlogElementRef is used for the sentinel
 
   const fetchDistinctTags = useCallback(async () => {
     try {
-      const response = await fetch('/api/blogs/distinct-tags');
+      const response = await fetch('/api/products/distinct-tags');
       if (!response.ok) throw new Error('Failed to fetch tags');
       const tagsData = await response.json();
-      setAllTags(['All', ...tagsData.filter((tag: string | null) => tag)]); // Ensure 'All' is first and filter nulls
+      setAllTags(['All', ...tagsData.filter((tag: string | null) => tag)]);
     } catch (error) {
-      console.error("Error fetching distinct tags:", error);
-      setAllTags(['All']); // Fallback
+      console.error("Error fetching distinct product tags:", error);
+      setAllTags(['All']);
     }
   }, []);
 
-  const fetchBlogs = useCallback(async (page: number, search: string, category: string, tag: string, append = false) => {
+  const fetchDistinctStatuses = useCallback(async () => {
+    try {
+      const response = await fetch('/api/products/distinct-statuses');
+      if (!response.ok) throw new Error('Failed to fetch statuses');
+      const statusesData = await response.json();
+      setAllStatuses(['All', ...statusesData.filter((status: string | null) => status)]);
+    } catch (error) {
+      console.error("Error fetching distinct product statuses:", error);
+      setAllStatuses(['All']);
+    }
+  }, []);
+
+  const fetchProducts = useCallback(async (page: number, search: string, category: string, tag: string, status: string, append = false) => {
     if (append) setLoadingMore(true); else setLoading(true);
 
     const params = new URLSearchParams({
@@ -55,22 +68,21 @@ export default function BlogsPage() {
     if (search) params.set('search', search);
     if (category && category !== 'All') params.set('category', category);
     if (tag && tag !== 'All') params.set('tag', tag);
+    if (status && status !== 'All') params.set('status', status);
 
     try {
-      const response = await fetch(`/api/blogs/list?${params.toString()}`);
+      const response = await fetch(`/api/products/list?${params.toString()}`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch blogs: ${response.statusText}`);
+        throw new Error(`Failed to fetch products: ${response.statusText}`);
       }
       const data = await response.json();
       
-      setBlogs(prevBlogs => append ? [...prevBlogs, ...data.blogs] : data.blogs);
+      setProducts(prevProducts => append ? [...prevProducts, ...data.products] : data.products);
       setCurrentPage(data.currentPage);
-      // setTotalPages(data.totalPages); // Not strictly needed for infinite scroll
       setHasMore(data.hasMore);
 
     } catch (error) {
-      console.error("Error fetching blogs:", error);
-      // Potentially set an error state here to show to user
+      console.error("Error fetching products:", error);
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
       if(initialLoad) setInitialLoad(false);
@@ -79,56 +91,54 @@ export default function BlogsPage() {
 
   useEffect(() => {
     fetchDistinctTags();
-  }, [fetchDistinctTags]);
+    fetchDistinctStatuses();
+  }, [fetchDistinctTags, fetchDistinctStatuses]);
   
   useEffect(() => {
-    setBlogs([]); // Reset blogs when filters change
-    setCurrentPage(1); // Reset to first page
-    setHasMore(true); // Assume there's more data
-    fetchBlogs(1, debouncedSearchTerm, selectedCategory, selectedTag, false);
-  }, [debouncedSearchTerm, selectedCategory, selectedTag, fetchBlogs]);
+    setProducts([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    fetchProducts(1, debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, false);
+  }, [debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, fetchProducts]);
 
-  const lastBlogElementRef = useCallback(
+  const lastProductElementRef = useCallback(
     (node: HTMLDivElement) => {
       if (loading || loadingMore || !hasMore) return;
       if (observer.current) observer.current.disconnect();
       observer.current = new IntersectionObserver(entries => {
         if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
-          fetchBlogs(currentPage + 1, debouncedSearchTerm, selectedCategory, selectedTag, true);
+          fetchProducts(currentPage + 1, debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, true);
         }
       });
       if (node) observer.current.observe(node);
     },
-    [loading, loadingMore, hasMore, currentPage, debouncedSearchTerm, selectedCategory, selectedTag, fetchBlogs]
+    [loading, loadingMore, hasMore, currentPage, debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, fetchProducts]
   );
-
 
   return (
     <PageWrapper>
       <div className="space-y-8">
         <header className="text-center space-y-2 py-8">
           <h1 className="text-4xl font-bold tracking-tight font-headline">
-            Our <span className="text-primary">Blog</span>
+            Our <span className="text-primary">Products</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            Discover insights, tutorials, and updates on web development, machine learning, and AI.
+            Explore our latest tools, applications, and digital solutions.
           </p>
         </header>
 
         <div className="space-y-6">
-          {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search articles by title..."
+              placeholder="Search products by title..."
               className="w-full pl-10 pr-4 py-2 text-base rounded-lg shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          {/* Filters */}
           <div className="space-y-4">
             <Tabs value={selectedCategory} onValueChange={(value) => {setSelectedCategory(value); setCurrentPage(1);}} className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2">
@@ -140,7 +150,19 @@ export default function BlogsPage() {
               </TabsList>
             </Tabs>
 
-            {allTags.length > 1 && ( // Only show if there are tags beyond "All"
+            {allStatuses.length > 1 && (
+              <Tabs value={selectedStatus} onValueChange={(value) => {setSelectedStatus(value); setCurrentPage(1);}} className="w-full">
+                <TabsList className="flex flex-wrap justify-start gap-2 h-auto py-2">
+                  {allStatuses.map(status => (
+                    <TabsTrigger key={status} value={status} className="text-xs px-2 py-1 capitalize data-[state=active]:shadow-md">
+                      {status}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            )}
+
+            {allTags.length > 1 && (
               <Tabs value={selectedTag} onValueChange={(value) => {setSelectedTag(value); setCurrentPage(1);}} className="w-full">
                  <TabsList className="flex flex-wrap justify-start gap-2 h-auto py-2">
                     {allTags.map(tag => (
@@ -158,21 +180,21 @@ export default function BlogsPage() {
           <div className="flex justify-center items-center min-h-[300px]">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
-        ) : blogs.length === 0 && !loading ? (
+        ) : products.length === 0 && !loading ? (
           <div className="text-center py-10">
-            <p className="text-xl text-muted-foreground">No blog posts found matching your criteria.</p>
+            <p className="text-xl text-muted-foreground">No products found matching your criteria.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* Adjusted for horizontal cards */}
-            {blogs.map((blog, index) => {
-              if (blogs.length === index + 1) { // Last element
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {products.map((product, index) => {
+              if (products.length === index + 1) {
                 return (
-                  <div ref={lastBlogElementRef} key={blog._id}>
-                    <BlogCard blog={blog} />
+                  <div ref={lastProductElementRef} key={product._id}>
+                    <ProductCard product={product} />
                   </div>
                 );
               } else {
-                return <BlogCard key={blog._id} blog={blog} />;
+                return <ProductCard key={product._id} product={product} />;
               }
             })}
           </div>
@@ -183,7 +205,7 @@ export default function BlogsPage() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         )}
-        {!hasMore && blogs.length > 0 && (
+        {!hasMore && products.length > 0 && (
           <p className="text-center text-muted-foreground py-6">You've reached the end!</p>
         )}
       </div>

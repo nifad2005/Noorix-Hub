@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const blogs = await Blog.find(query)
       .select({
         title: 1,
-        featuredImage: 1,
+        // featuredImage: 1, // Removed as per request
         category: 1,
         tags: 1,
         createdAt: 1,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .lean(); // Use .lean() for better performance as we don't need Mongoose documents
+      .lean(); // Use .lean() for better performance
 
     const totalBlogs = await Blog.countDocuments(query);
     const totalPages = Math.ceil(totalBlogs / limit);
