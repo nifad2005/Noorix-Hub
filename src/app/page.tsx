@@ -27,15 +27,7 @@ export default async function HomePage() {
   return (
     <PageWrapper>
       <div className="flex flex-col items-center justify-center text-center space-y-8 py-12">
-        <Image
-          src="https://placehold.co/300x200.png"
-          alt="Abstract technology background"
-          width={300}
-          height={200}
-          className="rounded-lg shadow-xl"
-          data-ai-hint="technology abstract"
-          priority
-        />
+        
         <h1 className="text-5xl font-bold tracking-tight font-headline">
           Welcome to <span className="text-primary">Noorix Hub</span>
         </h1>

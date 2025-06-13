@@ -6,7 +6,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Copy, Facebook, Youtube, Link as LinkIcon } from "lucide-react";
+import { Mail, Copy, Facebook, Youtube, Link as LinkIcon, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -42,14 +42,7 @@ export default function ContactPage() {
       <div className="max-w-lg mx-auto">
         <Card className="shadow-xl">
           <CardHeader className="text-center">
-            <Image
-              src="https://placehold.co/150x100.png"
-              alt="Contact illustration"
-              width={150}
-              height={100}
-              className="rounded-lg mx-auto mb-4"
-              data-ai-hint="communication connection"
-            />
+            <MessageCircle className="mx-auto h-16 w-16 text-primary mb-4" />
             <CardTitle className="text-3xl font-headline flex items-center justify-center">
               <Mail className="mr-3 h-8 w-8 text-primary" /> Get In Touch
             </CardTitle>

@@ -9,6 +9,7 @@ import { PageWrapper } from "@/components/layout/PageWrapper";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { LogIn } from "lucide-react";
 
 export default function LoginPage() {
   const { login, isAuthenticated, loading } = useAuth(); // login from useAuth will now trigger next-auth's signIn
@@ -40,14 +41,7 @@ export default function LoginPage() {
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center">
              <div className="mx-auto mb-6">
-                <Image 
-                  src="https://placehold.co/150x100.png" 
-                  alt="Login illustration" 
-                  width={150} 
-                  height={100} 
-                  className="rounded-lg"
-                  data-ai-hint="secure lock"
-                />
+                <LogIn className="h-16 w-16 text-primary" />
             </div>
             <CardTitle className="text-3xl font-headline">Welcome Back!</CardTitle>
             <CardDescription>Sign in to access your Noorix Hub account.</CardDescription>
