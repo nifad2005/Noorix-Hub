@@ -55,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } catch (error) {
       console.error("Failed to save user to localStorage", error);
     }
-    router.push("/");
+    router.push("/profile"); // Changed to redirect to profile
   }, [router]);
 
   const logout = useCallback(() => {
@@ -75,3 +75,4 @@ export function AuthProvider({ children }: AuthProviderProps) {
     </AuthContext.Provider>
   );
 }
+
