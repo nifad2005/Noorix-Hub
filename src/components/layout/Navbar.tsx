@@ -45,8 +45,9 @@ export function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatarUrl} alt={user.name} />
-                      <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+                      {/* user.avatarUrl now comes from Google's user.image via AuthContext */}
+                      <AvatarImage src={user.avatarUrl || undefined} alt={user.name || "User"} />
+                      <AvatarFallback>{getInitials(user.name || undefined)}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>

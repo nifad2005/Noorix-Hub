@@ -2,21 +2,24 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { createContext, useCallback } from "react";
+import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
+import type { Session } from "next-auth";
+// useRouter is not directly needed here anymore for login/logout redirects as next-auth handles it.
 
 interface User {
-  name: string;
-  email: string;
-  avatarUrl?: string;
+  name?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
 }
 
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (userData: User) => void;
+  login: () => void; // No userData needed for OAuth with Google
   logout: () => void;
   loading: boolean;
+  session: Session | null; // Expose the raw session if needed
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,54 +28,44 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+// Inner component to use useSession and provide context
+function AuthProviderContent({ children }: AuthProviderProps) {
+  const { data: session, status } = useSession();
 
-  useEffect(() => {
-    // Simulate checking auth status from localStorage or an API
-    try {
-      const storedUser = localStorage.getItem("noorixUser");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
+  const loading = status === "loading";
+  const isAuthenticated = status === "authenticated";
+
+  const user: User | null = session?.user
+    ? {
+        name: session.user.name,
+        email: session.user.email,
+        avatarUrl: session.user.image, // Google provides 'image', map it to avatarUrl
       }
-    } catch (error) {
-      console.error("Failed to parse user from localStorage", error);
-      localStorage.removeItem("noorixUser");
-    }
-    setLoading(false);
+    : null;
+
+  const login = useCallback(() => {
+    // signIn will redirect to Google, then callback to /profile (or configured callback)
+    // The callbackUrl in signIn options here can override the one in next-auth config if needed for specific login flows
+    signIn("google", { callbackUrl: "/profile" });
   }, []);
 
-  const login = useCallback((userData: User) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    try {
-      localStorage.setItem("noorixUser", JSON.stringify(userData));
-    } catch (error) {
-      console.error("Failed to save user to localStorage", error);
-    }
-    router.push("/profile"); // Changed to redirect to profile
-  }, [router]);
-
   const logout = useCallback(() => {
-    setUser(null);
-    setIsAuthenticated(false);
-    try {
-      localStorage.removeItem("noorixUser");
-    } catch (error) {
-      console.error("Failed to remove user from localStorage", error);
-    }
-    router.push("/login");
-  }, [router]);
+    // signOut will clear the session and redirect to callbackUrl
+    signOut({ callbackUrl: "/login" });
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading, session }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
+// The main AuthProvider now wraps SessionProvider
+export function AuthProvider({ children }: AuthProviderProps) {
+  return (
+    <SessionProvider>
+      <AuthProviderContent>{children}</AuthProviderContent>
+    </SessionProvider>
+  );
+}

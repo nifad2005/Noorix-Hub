@@ -23,7 +23,7 @@ export default function ProfilePage() {
     }
   }, [isAuthenticated, loading, router]);
 
-  if (loading || !user) {
+  if (loading || (!user && !loading)) { // Check !user directly after loading is false
      return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -33,6 +33,19 @@ export default function ProfilePage() {
     );
   }
   
+  // Ensure user is not null before proceeding
+  if (!user) {
+    // This case should ideally be caught by the loading || (!user && !loading) check above,
+    // or the useEffect redirect. Adding for robustness.
+    return (
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+          <p>User data not available. Redirecting...</p>
+        </div>
+      </PageWrapper>
+    );
+  }
+
   const getInitials = (name: string = "") => {
     return name
       .split(" ")
@@ -47,8 +60,9 @@ export default function ProfilePage() {
         <Card className="shadow-lg">
           <CardHeader className="flex flex-col items-center text-center sm:flex-row sm:text-left sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
             <Avatar className="h-24 w-24 text-3xl">
-              <AvatarImage src={user.avatarUrl} alt={user.name} data-ai-hint="user avatar" />
-              <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
+              {/* user.avatarUrl now comes from Google's user.image via AuthContext */}
+              <AvatarImage src={user.avatarUrl || undefined} alt={user.name || "User"} data-ai-hint="user avatar" />
+              <AvatarFallback>{getInitials(user.name || undefined)}</AvatarFallback>
             </Avatar>
             <div className="flex-grow">
               <CardTitle className="text-3xl font-headline">{user.name}</CardTitle>
@@ -72,11 +86,11 @@ export default function ProfilePage() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" defaultValue={user.name} disabled />
+                <Input id="name" defaultValue={user.name || ""} disabled />
               </div>
               <div>
                 <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" defaultValue={user.email} disabled />
+                <Input id="email" type="email" defaultValue={user.email || ""} disabled />
               </div>
               <Button className="w-full sm:w-auto">Update Information</Button>
             </CardContent>

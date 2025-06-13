@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth"; // We can continue to use our useAuth hook
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleIcon } from "@/components/icons/GoogleIcon";
@@ -11,23 +11,17 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function LoginPage() {
-  const { login, isAuthenticated, loading } = useAuth();
+  const { login, isAuthenticated, loading } = useAuth(); // login from useAuth will now trigger next-auth's signIn
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
-      router.push("/profile");
+      router.push("/profile"); // Redirect if already authenticated
     }
   }, [isAuthenticated, loading, router]);
 
   const handleGoogleSignIn = () => {
-    // Simulate Google Sign-In
-    const mockUserData = {
-      name: "Noorix User",
-      email: "user@noorix.com",
-      avatarUrl: "https://placehold.co/100x100.png",
-    };
-    login(mockUserData);
+    login(); // Call the login function from our AuthContext
   };
 
   if (loading || (!loading && isAuthenticated)) {
