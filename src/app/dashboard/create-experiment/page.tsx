@@ -18,19 +18,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
+const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 
 const experimentFormSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters." }).max(100),
   description: z.string().min(10, { message: "Description must be at least 10 characters." }).max(1000),
   tryHereLink: z.string().url({ message: "Please enter a valid URL." }),
   youtubeVideoLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
-  category: z.string().min(2, { message: "Category is required." }).max(50),
+  category: z.enum(allowedCategories, { required_error: "Please select a category." }),
   tags: z.string().min(2, { message: "Please add at least one tag." }).max(100),
 });
 
@@ -49,7 +51,7 @@ export default function CreateExperimentPage() {
       description: "",
       tryHereLink: "",
       youtubeVideoLink: "",
-      category: "",
+      category: undefined,
       tags: "",
     },
   });
@@ -178,18 +180,27 @@ export default function CreateExperimentPage() {
                 )}
               />
               <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Machine Learning, Web Dev, Physics" {...field} disabled={isSubmitting} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="WEB DEVELOPMENT">WEB DEVELOPMENT</SelectItem>
+                          <SelectItem value="ML">ML</SelectItem>
+                          <SelectItem value="AI">AI</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               <FormField
                 control={form.control}
                 name="tags"
