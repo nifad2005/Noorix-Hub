@@ -65,7 +65,7 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((link) => (
-              <Link key={link.label} href={link.href} passHref legacyBehavior>
+              <Link key={link.label} href={link.href}>
                 <Button variant="ghost" asChild><a>{link.label}</a></Button>
               </Link>
             ))}
@@ -148,7 +148,7 @@ export function Navbar() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link href="/login" passHref legacyBehavior>
+              <Link href="/login">
                 <Button asChild><a>Login</a></Button>
               </Link>
             )}
