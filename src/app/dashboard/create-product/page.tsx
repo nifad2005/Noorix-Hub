@@ -23,9 +23,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { ProductStatus } from "@/models/Product";
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
+const allowedProductStatuses: [ProductStatus, ...ProductStatus[]] = ["beta", "new released", "featured", "experimental"];
+
 
 const productFormSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters." }).max(100),
@@ -33,6 +36,7 @@ const productFormSchema = z.object({
   tryHereLink: z.string().url({ message: "Please enter a valid URL." }),
   youtubeVideoLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   category: z.enum(allowedCategories, { required_error: "Please select a category." }),
+  status: z.enum(allowedProductStatuses, { required_error: "Please select a status."}),
   tags: z.string().min(2, { message: "Please add at least one tag." }).max(100),
 });
 
@@ -52,6 +56,7 @@ export default function CreateProductPage() {
       tryHereLink: "",
       youtubeVideoLink: "",
       category: undefined,
+      status: undefined,
       tags: "",
     },
   });
@@ -83,7 +88,7 @@ export default function CreateProductPage() {
         throw new Error(errorData.message || 'Failed to create product');
       }
 
-      const result = await response.json();
+      await response.json();
       toast({
         title: "Product Created!",
         description: "Your new product has been saved successfully.",
@@ -179,7 +184,8 @@ export default function CreateProductPage() {
                   </FormItem>
                 )}
               />
-               <FormField
+              <div className="grid md:grid-cols-2 gap-6">
+                <FormField
                   control={form.control}
                   name="category"
                   render={({ field }) => (
@@ -201,6 +207,30 @@ export default function CreateProductPage() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select product status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="beta">Beta</SelectItem>
+                          <SelectItem value="new released">New Released</SelectItem>
+                          <SelectItem value="featured">Featured</SelectItem>
+                          <SelectItem value="experimental">Experimental</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="tags"
