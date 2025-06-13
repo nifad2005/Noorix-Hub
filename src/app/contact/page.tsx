@@ -1,137 +1,94 @@
 
 "use client";
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import { useState } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
-import { Mail, Send } from "lucide-react";
+import { Mail, Copy, Facebook, Youtube, Link as LinkIcon } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
-const contactFormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email address." }).max(100),
-});
-
-type ContactFormValues = z.infer<typeof contactFormSchema>;
+const CONTACT_EMAIL = "nifaduzzaman2005@gmail.com";
+const FACEBOOK_URL = "https://www.facebook.com/noorix.startup";
+const YOUTUBE_URL = "https://www.youtube.com/@noorix.startup";
 
 export default function ContactPage() {
   const { toast } = useToast();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const form = useForm<ContactFormValues>({
-    resolver: zodResolver(contactFormSchema),
-    defaultValues: {
-      email: "",
-    },
-  });
-
-  useEffect(() => {
-    if (!authLoading && isAuthenticated && user?.email) {
-      form.reset({
-        email: user.email,
-      });
-    } else if (!authLoading && !isAuthenticated) {
-        form.reset({ email: ""}); // Clear email if not authenticated
-    }
-  }, [isAuthenticated, authLoading, user, form]);
-
-  async function onSubmit(data: ContactFormValues) {
-    setIsSubmitting(true);
+  const handleCopyEmail = async () => {
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: data.email }), // Send only email
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to send contact request');
-      }
-
-      await response.json();
+      await navigator.clipboard.writeText(CONTACT_EMAIL);
+      setCopied(true);
       toast({
-        title: "Request Sent!",
-        description: "Thank you! We'll get back to you at the email provided shortly.",
+        title: "Email Copied!",
+        description: `${CONTACT_EMAIL} has been copied to your clipboard.`,
       });
-      // Reset email field or keep pre-filled if logged in
-      form.reset({
-        email: (isAuthenticated && user?.email) || "",
-      });
-
-    } catch (error) {
-      console.error("Failed to send contact request:", error);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy email: ", err);
       toast({
-        title: "Submission Failed",
-        description: (error as Error).message || "Could not send your request. Please try again.",
+        title: "Copy Failed",
+        description: "Could not copy email. Please try again manually.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <PageWrapper>
-      <Card className="max-w-lg mx-auto shadow-xl">
-        <CardHeader className="text-center">
-          <Image 
-            src="https://placehold.co/150x100.png" 
-            alt="Contact illustration" 
-            width={150} 
-            height={100} 
-            className="rounded-lg mx-auto mb-4"
-            data-ai-hint="email envelope"
-          />
-          <CardTitle className="text-3xl font-headline flex items-center justify-center">
-            <Mail className="mr-3 h-8 w-8 text-primary" /> Contact Us
-          </CardTitle>
-          <CardDescription>Have questions or want to get in touch? Just leave your email and we'll reach out.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /> Your Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="you@example.com" {...field} disabled={isSubmitting || (isAuthenticated && !!user?.email)} />
-                    </FormControl>
-                    {isAuthenticated && user?.email && (
-                        <p className="text-xs text-muted-foreground">You are logged in. We will use your account email: {user.email}</p>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || authLoading}>
-                <Send className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Sending..." : "Send Email"}
+      <div className="max-w-lg mx-auto">
+        <Card className="shadow-xl">
+          <CardHeader className="text-center">
+            <Image
+              src="https://placehold.co/150x100.png"
+              alt="Contact illustration"
+              width={150}
+              height={100}
+              className="rounded-lg mx-auto mb-4"
+              data-ai-hint="communication connection"
+            />
+            <CardTitle className="text-3xl font-headline flex items-center justify-center">
+              <Mail className="mr-3 h-8 w-8 text-primary" /> Get In Touch
+            </CardTitle>
+            <CardDescription>
+              The best way to reach us is via email or through our social channels.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground text-center">
+                For inquiries, support, or collaborations, please email us at:
+              </p>
+              <div className="flex items-center justify-center p-3 border rounded-md bg-muted">
+                <span className="text-lg font-medium text-primary break-all">{CONTACT_EMAIL}</span>
+              </div>
+              <Button onClick={handleCopyEmail} className="w-full mt-2" variant="outline">
+                <Copy className="mr-2 h-4 w-4" />
+                {copied ? "Email Copied!" : "Copy Email Address"}
               </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            </div>
+
+            <div className="text-center space-y-3 pt-4">
+              <h3 className="text-md font-semibold text-muted-foreground">Connect with us on social media:</h3>
+              <div className="flex justify-center space-x-4">
+                <Button asChild variant="outline" size="lg">
+                  <Link href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" aria-label="Noorix Startup on Facebook">
+                    <Facebook className="mr-2 h-5 w-5" /> Facebook
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href={YOUTUBE_URL} target="_blank" rel="noopener noreferrer" aria-label="Noorix Startup on YouTube">
+                    <Youtube className="mr-2 h-5 w-5" /> YouTube
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </PageWrapper>
   );
 }

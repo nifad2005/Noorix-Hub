@@ -1,11 +1,18 @@
 
 import { NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import Contact from '@/models/Contact';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import mongoose from 'mongoose';
+// import connectDB from '@/lib/db';
+// import Contact from '@/models/Contact';
+// import { getServerSession } from "next-auth/next";
+// import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+// import mongoose from 'mongoose';
 
+// The POST functionality is removed as per user request.
+// The contact page will now be static.
+
+// If you need to re-enable form submissions in the future, you can uncomment the code below
+// and restore the form on the contact page.
+
+/*
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   
@@ -59,4 +66,12 @@ export async function POST(request: Request) {
     }
     return NextResponse.json({ message: 'Error submitting contact message', error: 'An unknown error occurred' }, { status: 500 });
   }
+}
+*/
+
+// Add a GET handler or other methods if needed, otherwise this file can be empty or removed
+// if no API functionality is required for `/api/contact` anymore.
+// For now, providing a placeholder GET that indicates the change.
+export async function GET() {
+    return NextResponse.json({ message: 'Contact form submission is disabled. Please use the provided email or social links.' }, { status: 405 });
 }
