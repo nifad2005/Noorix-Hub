@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
@@ -40,6 +40,7 @@ export default function CreateExperimentPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ExperimentFormValues>({
     resolver: zodResolver(experimentFormSchema),
@@ -64,21 +65,41 @@ export default function CreateExperimentPage() {
     }
   }, [user, authLoading, router, toast]);
 
+  async function onSubmit(data: ExperimentFormValues) {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/experiments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-  function onSubmit(data: ExperimentFormValues) {
-    console.log(data);
-    toast({
-      title: "Experiment Submitted!",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-    form.reset();
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create experiment');
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Experiment Created!",
+        description: "Your new experiment has been saved successfully.",
+      });
+      form.reset();
+    } catch (error) {
+      console.error("Failed to submit experiment:", error);
+      toast({
+        title: "Submission Failed",
+        description: (error as Error).message || "Could not save the experiment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
-  if (authLoading || user?.email !== ADMIN_EMAIL) {
+  if (authLoading || (!authLoading && user?.email !== ADMIN_EMAIL)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -105,7 +126,7 @@ export default function CreateExperimentPage() {
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter experiment title" {...field} />
+                      <Input placeholder="Enter experiment title" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -122,6 +143,7 @@ export default function CreateExperimentPage() {
                         placeholder="Describe your experiment"
                         className="resize-y min-h-[100px]"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -135,7 +157,7 @@ export default function CreateExperimentPage() {
                   <FormItem>
                     <FormLabel>Try Here Link / Source Code</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://example.com/results-or-code" {...field} />
+                      <Input type="url" placeholder="https://example.com/results-or-code" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormDescription>Link to results, demo, or code repository.</FormDescription>
                     <FormMessage />
@@ -149,7 +171,7 @@ export default function CreateExperimentPage() {
                   <FormItem>
                     <FormLabel>YouTube Video Link (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://youtube.com/watch?v=..." {...field} />
+                      <Input type="url" placeholder="https://youtube.com/watch?v=..." {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,7 +184,7 @@ export default function CreateExperimentPage() {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Machine Learning, Web Dev, Physics" {...field} />
+                      <Input placeholder="e.g., Machine Learning, Web Dev, Physics" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,15 +197,15 @@ export default function CreateExperimentPage() {
                   <FormItem>
                     <FormLabel>Tags</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., research, data-analysis, frontend" {...field} />
+                      <Input placeholder="e.g., research, data-analysis, frontend" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormDescription>Comma-separated list of tags.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
-                 {form.formState.isSubmitting ? "Submitting..." : "Create Experiment"}
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                 {isSubmitting ? "Submitting..." : "Create Experiment"}
               </Button>
             </form>
           </Form>

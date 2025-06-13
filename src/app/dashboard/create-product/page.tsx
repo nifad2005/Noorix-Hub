@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
@@ -31,7 +31,7 @@ const productFormSchema = z.object({
   tryHereLink: z.string().url({ message: "Please enter a valid URL." }),
   youtubeVideoLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   category: z.string().min(2, { message: "Category is required." }).max(50),
-  tags: z.string().min(2, { message: "Please add at least one tag." }).max(100), // Users can enter comma-separated tags
+  tags: z.string().min(2, { message: "Please add at least one tag." }).max(100),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -40,6 +40,7 @@ export default function CreateProductPage() {
   const { toast } = useToast();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -64,21 +65,41 @@ export default function CreateProductPage() {
     }
   }, [user, authLoading, router, toast]);
 
-  function onSubmit(data: ProductFormValues) {
-    // In a real app, you would send this data to your backend
-    console.log(data);
-    toast({
-      title: "Product Submitted!",
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-    form.reset(); // Reset form after submission
+  async function onSubmit(data: ProductFormValues) {
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create product');
+      }
+
+      const result = await response.json();
+      toast({
+        title: "Product Created!",
+        description: "Your new product has been saved successfully.",
+      });
+      form.reset();
+    } catch (error) {
+      console.error("Failed to submit product:", error);
+      toast({
+        title: "Submission Failed",
+        description: (error as Error).message || "Could not save the product. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
   
-  if (authLoading || user?.email !== ADMIN_EMAIL) {
+  if (authLoading || (!authLoading && user?.email !== ADMIN_EMAIL)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
@@ -87,7 +108,6 @@ export default function CreateProductPage() {
       </PageWrapper>
     );
   }
-
 
   return (
     <PageWrapper>
@@ -106,7 +126,7 @@ export default function CreateProductPage() {
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter product title" {...field} />
+                      <Input placeholder="Enter product title" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -123,6 +143,7 @@ export default function CreateProductPage() {
                         placeholder="Describe your product in detail"
                         className="resize-y min-h-[100px]"
                         {...field}
+                        disabled={isSubmitting}
                       />
                     </FormControl>
                     <FormMessage />
@@ -136,7 +157,7 @@ export default function CreateProductPage() {
                   <FormItem>
                     <FormLabel>Try Here Link</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://example.com/try" {...field} />
+                      <Input type="url" placeholder="https://example.com/try" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormDescription>Link to a demo or product page.</FormDescription>
                     <FormMessage />
@@ -150,7 +171,7 @@ export default function CreateProductPage() {
                   <FormItem>
                     <FormLabel>YouTube Video Link (Optional)</FormLabel>
                     <FormControl>
-                      <Input type="url" placeholder="https://youtube.com/watch?v=..." {...field} />
+                      <Input type="url" placeholder="https://youtube.com/watch?v=..." {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -163,7 +184,7 @@ export default function CreateProductPage() {
                   <FormItem>
                     <FormLabel>Category</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., SaaS, Mobile App, Tool" {...field} />
+                      <Input placeholder="e.g., SaaS, Mobile App, Tool" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -176,15 +197,15 @@ export default function CreateProductPage() {
                   <FormItem>
                     <FormLabel>Tags</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., productivity, AI, development" {...field} />
+                      <Input placeholder="e.g., productivity, AI, development" {...field} disabled={isSubmitting} />
                     </FormControl>
                     <FormDescription>Comma-separated list of tags.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full sm:w-auto" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? "Submitting..." : "Create Product"}
+              <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Create Product"}
               </Button>
             </form>
           </Form>
