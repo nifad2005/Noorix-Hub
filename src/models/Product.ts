@@ -6,8 +6,8 @@ export interface IProduct extends Document {
   description: string;
   tryHereLink: string;
   youtubeVideoLink?: string;
-  category: string;
-  tags: string[]; // Storing tags as an array of strings
+  category: "WEB DEVELOPMENT" | "ML" | "AI" | string; // Form enforces enum
+  tags: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,10 +18,10 @@ const ProductSchema: Schema = new Schema(
     description: { type: String, required: true, trim: true, minlength: 10, maxlength: 1000 },
     tryHereLink: { type: String, required: true, trim: true },
     youtubeVideoLink: { type: String, trim: true, optional: true },
-    category: { type: String, required: true, trim: true, minlength: 2, maxlength: 50 },
-    tags: [{ type: String, trim: true }], // Comma-separated string will be converted to array in API
+    category: { type: String, required: true, trim: true, enum: ["WEB DEVELOPMENT", "ML", "AI"] },
+    tags: [{ type: String, trim: true }],
   },
-  { timestamps: true } // Adds createdAt and updatedAt timestamps
+  { timestamps: true }
 );
 
 export default models.Product || model<IProduct>('Product', ProductSchema);

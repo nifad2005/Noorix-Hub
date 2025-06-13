@@ -6,7 +6,7 @@ export interface IExperiment extends Document {
   description: string;
   tryHereLink: string;
   youtubeVideoLink?: string;
-  category: string;
+  category: "WEB DEVELOPMENT" | "ML" | "AI" | string; // Form enforces enum
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -18,7 +18,7 @@ const ExperimentSchema: Schema = new Schema(
     description: { type: String, required: true, trim: true, minlength: 10, maxlength: 1000 },
     tryHereLink: { type: String, required: true, trim: true },
     youtubeVideoLink: { type: String, trim: true, optional: true },
-    category: { type: String, required: true, trim: true, minlength: 2, maxlength: 50 },
+    category: { type: String, required: true, trim: true, enum: ["WEB DEVELOPMENT", "ML", "AI"] },
     tags: [{ type: String, trim: true }],
   },
   { timestamps: true }
