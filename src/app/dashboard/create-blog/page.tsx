@@ -28,9 +28,9 @@ const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const blogFormSchema = z.object({
   title: z.string().min(5, { message: "Title must be at least 5 characters." }).max(150),
   content: z.string().min(50, { message: "Content must be at least 50 characters." }),
+  featuredImage: z.string().url({ message: "Please enter a valid URL for the featured image."}).optional().or(z.literal('')),
   category: z.string().min(2, { message: "Category is required." }).max(50),
   tags: z.string().min(2, { message: "Please add at least one tag." }).max(100),
-  // featuredImage: z.string().url({ message: "Please enter a valid URL for the featured image."}).optional(), // Optional
 });
 
 type BlogFormValues = z.infer<typeof blogFormSchema>;
@@ -45,9 +45,9 @@ export default function CreateBlogPage() {
     defaultValues: {
       title: "",
       content: "",
+      featuredImage: "",
       category: "",
       tags: "",
-      // featuredImage: "",
     },
   });
 
@@ -129,7 +129,6 @@ export default function CreateBlogPage() {
                   </FormItem>
                 )}
               />
-              {/* 
               <FormField
                 control={form.control}
                 name="featuredImage"
@@ -143,7 +142,6 @@ export default function CreateBlogPage() {
                   </FormItem>
                 )}
               />
-              */}
               <div className="grid md:grid-cols-2 gap-6">
                 <FormField
                   control={form.control}
