@@ -10,7 +10,7 @@ const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.email !== ADMIN_EMAIL) {
+  if (!session || !session.user || !session.user.id || session.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,12 +18,12 @@ export async function POST(request: Request) {
     await connectDB();
     const body = await request.json();
     
-    // Convert comma-separated tags string to an array
     const tagsArray = body.tags ? body.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
 
     const newProductData = {
       ...body,
       tags: tagsArray,
+      createdBy: session.user.id, // Add the creator's ID
     };
 
     const newProduct = new Product(newProductData);

@@ -10,7 +10,7 @@ const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.email !== ADMIN_EMAIL) {
+  if (!session || !session.user || !session.user.id || session.user.email !== ADMIN_EMAIL) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const newBlogData = {
         ...body,
         tags: tagsArray,
+        createdBy: session.user.id, // Add the creator's ID
     };
 
     const newBlog = new Blog(newBlogData);
