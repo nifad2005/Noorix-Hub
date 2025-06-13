@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import React, { useState } from "react"; // Added useState
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/icons/Logo";
@@ -18,6 +19,19 @@ import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn } from "lucide-
 
 export function Navbar() {
   const { isAuthenticated, user, logout, loading } = useAuth();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  let hoverTimeout: NodeJS.Timeout | null = null;
+
+  const handleMoreMenuOpen = () => {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    setIsMoreMenuOpen(true);
+  };
+
+  const handleMoreMenuClose = () => {
+    hoverTimeout = setTimeout(() => {
+      setIsMoreMenuOpen(false);
+    }, 200); // Delay to allow mouse to move to content
+  };
 
   const getInitials = (name: string = "") => {
     return name
@@ -55,14 +69,25 @@ export function Navbar() {
                 <Button variant="ghost" asChild><a>{link.label}</a></Button>
               </Link>
             ))}
-            <DropdownMenu>
+            <DropdownMenu open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="group flex items-center">
+                <Button
+                  variant="ghost"
+                  className="group flex items-center"
+                  onMouseEnter={handleMoreMenuOpen}
+                  onMouseLeave={handleMoreMenuClose}
+                  // onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} // Retain click for accessibility if desired / touch
+                >
                   More
                   <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent
+                align="end"
+                className="w-56" // Made wider
+                onMouseEnter={handleMoreMenuOpen} // Keep open if mouse enters content
+                onMouseLeave={handleMoreMenuClose} // Close if mouse leaves content
+              >
                 {moreLinks.map((link) => (
                   <DropdownMenuItem key={link.label} asChild>
                     <Link href={link.href} className="w-full flex justify-start">{link.label}</Link>
