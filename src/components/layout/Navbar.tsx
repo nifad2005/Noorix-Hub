@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn, MessageSquareHeart } from "lucide-react"; // Added MessageSquareHeart
+import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn, MessageSquareHeart, Mail } from "lucide-react";
 
 export function Navbar() {
   const { isAuthenticated, user, logout, loading } = useAuth();
@@ -51,6 +51,7 @@ export function Navbar() {
   const moreLinks = [
     { href: "/about", label: "About Us" },
     { href: "/feedback", label: "Feedback" },
+    { href: "/contact", label: "Contact Us" },
   ];
 
   return (
@@ -66,7 +67,7 @@ export function Navbar() {
           <div className="hidden md:flex items-center space-x-1 lg:space-x-2">
             {navLinks.map((link) => (
               <Link key={link.label} href={link.href}>
-                <Button variant="ghost" asChild><a>{link.label}</a></Button>
+                <Button variant="ghost" asChild><span>{link.label}</span></Button>
               </Link>
             ))}
             <DropdownMenu open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
@@ -149,7 +150,7 @@ export function Navbar() {
               </DropdownMenu>
             ) : (
               <Link href="/login">
-                <Button asChild><a>Login</a></Button>
+                <Button asChild><span>Login</span></Button>
               </Link>
             )}
           </div>

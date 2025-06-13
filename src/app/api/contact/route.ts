@@ -1,0 +1,55 @@
+
+import { NextResponse } from 'next/server';
+import connectDB from '@/lib/db';
+import Contact from '@/models/Contact';
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import mongoose from 'mongoose';
+
+export async function POST(request: Request) {
+  const session = await getServerSession(authOptions);
+  
+  try {
+    await connectDB();
+    const body = await request.json();
+
+    const { name, email, subject, message } = body;
+
+    // Basic validation
+    if (!name || !email || !subject || !message) {
+        return NextResponse.json({ message: 'Missing required fields: name, email, subject, and message are required.' }, { status: 400 });
+    }
+
+    // More specific validation for email format (simple regex)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return NextResponse.json({ message: 'Invalid email format.' }, { status: 400 });
+    }
+
+
+    const contactData: any = {
+        name,
+        email,
+        subject,
+        message,
+    };
+
+    if (session && session.user && session.user.id) {
+        contactData.userId = new mongoose.Types.ObjectId(session.user.id);
+    }
+
+    const newContactMessage = new Contact(contactData);
+    await newContactMessage.save();
+
+    return NextResponse.json({ message: 'Your message has been sent successfully!', contact: newContactMessage }, { status: 201 });
+  } catch (error) {
+    console.error('Error submitting contact message:', error);
+    if (error instanceof mongoose.Error.ValidationError) {
+      return NextResponse.json({ message: 'Validation error', errors: error.errors }, { status: 400 });
+    }
+    if (error instanceof Error) {
+        return NextResponse.json({ message: 'Error submitting contact message', error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ message: 'Error submitting contact message', error: 'An unknown error occurred' }, { status: 500 });
+  }
+}
