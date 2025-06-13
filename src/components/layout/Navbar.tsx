@@ -84,7 +84,7 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56" 
+                className="w-72" 
                 onMouseEnter={handleMoreMenuOpen} 
                 onMouseLeave={handleMoreMenuClose} 
               >

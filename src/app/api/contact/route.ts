@@ -13,11 +13,11 @@ export async function POST(request: Request) {
     await connectDB();
     const body = await request.json();
 
-    const { name, email, subject, message } = body;
+    const { email } = body;
 
-    // Basic validation
-    if (!name || !email || !subject || !message) {
-        return NextResponse.json({ message: 'Missing required fields: name, email, subject, and message are required.' }, { status: 400 });
+    // Basic validation for email
+    if (!email) {
+        return NextResponse.json({ message: 'Email is required.' }, { status: 400 });
     }
 
     // More specific validation for email format (simple regex)
@@ -26,22 +26,29 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Invalid email format.' }, { status: 400 });
     }
 
-
     const contactData: any = {
-        name,
         email,
-        subject,
-        message,
+        subject: "Contact Request via Email", // Default subject
+        message: "User provided email for contact.", // Default message
+        name: "Guest User", // Default name
     };
 
     if (session && session.user && session.user.id) {
         contactData.userId = new mongoose.Types.ObjectId(session.user.id);
+        if (session.user.name) {
+            contactData.name = session.user.name; // Use authenticated user's name
+        }
+         // Email from session might be more reliable if user is logged in
+        if (session.user.email) {
+            contactData.email = session.user.email;
+        }
     }
+
 
     const newContactMessage = new Contact(contactData);
     await newContactMessage.save();
 
-    return NextResponse.json({ message: 'Your message has been sent successfully!', contact: newContactMessage }, { status: 201 });
+    return NextResponse.json({ message: 'Your contact request has been sent successfully!', contact: newContactMessage }, { status: 201 });
   } catch (error) {
     console.error('Error submitting contact message:', error);
     if (error instanceof mongoose.Error.ValidationError) {

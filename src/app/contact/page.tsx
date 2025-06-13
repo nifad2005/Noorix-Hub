@@ -9,26 +9,21 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { Mail, User, MessageSquare, Send } from "lucide-react";
+import { Mail, Send } from "lucide-react";
 import Image from "next/image";
 
 const contactFormSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters." }).max(100),
   email: z.string().email({ message: "Please enter a valid email address." }).max(100),
-  subject: z.string().min(3, { message: "Subject must be at least 3 characters." }).max(150),
-  message: z.string().min(10, { message: "Message must be at least 10 characters." }).max(2000),
 });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
@@ -41,21 +36,17 @@ export default function ContactPage() {
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
-      name: "",
       email: "",
-      subject: "",
-      message: "",
     },
   });
 
   useEffect(() => {
-    if (!authLoading && isAuthenticated && user) {
+    if (!authLoading && isAuthenticated && user?.email) {
       form.reset({
-        name: user.name || "",
-        email: user.email || "",
-        subject: "",
-        message: "",
+        email: user.email,
       });
+    } else if (!authLoading && !isAuthenticated) {
+        form.reset({ email: ""}); // Clear email if not authenticated
     }
   }, [isAuthenticated, authLoading, user, form]);
 
@@ -67,32 +58,29 @@ export default function ContactPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ email: data.email }), // Send only email
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to send message');
+        throw new Error(errorData.message || 'Failed to send contact request');
       }
 
       await response.json();
       toast({
-        title: "Message Sent!",
-        description: "Thank you for contacting us. We'll get back to you shortly.",
+        title: "Request Sent!",
+        description: "Thank you! We'll get back to you at the email provided shortly.",
       });
-      // Reset to initial state (clear subject/message, keep pre-filled name/email if logged in)
+      // Reset email field or keep pre-filled if logged in
       form.reset({
-        name: (isAuthenticated && user?.name) || "",
         email: (isAuthenticated && user?.email) || "",
-        subject: "",
-        message: "",
       });
 
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Failed to send contact request:", error);
       toast({
         title: "Submission Failed",
-        description: (error as Error).message || "Could not send your message. Please try again.",
+        description: (error as Error).message || "Could not send your request. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -102,7 +90,7 @@ export default function ContactPage() {
 
   return (
     <PageWrapper>
-      <Card className="max-w-2xl mx-auto shadow-xl">
+      <Card className="max-w-lg mx-auto shadow-xl">
         <CardHeader className="text-center">
           <Image 
             src="https://placehold.co/150x100.png" 
@@ -110,78 +98,35 @@ export default function ContactPage() {
             width={150} 
             height={100} 
             className="rounded-lg mx-auto mb-4"
-            data-ai-hint="communication contact"
+            data-ai-hint="email envelope"
           />
           <CardTitle className="text-3xl font-headline flex items-center justify-center">
-            <Mail className="mr-3 h-8 w-8 text-primary" /> Get In Touch
+            <Mail className="mr-3 h-8 w-8 text-primary" /> Contact Us
           </CardTitle>
-          <CardDescription>We'd love to hear from you! Send us a message with any questions or inquiries.</CardDescription>
+          <CardDescription>Have questions or want to get in touch? Just leave your email and we'll reach out.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center"><User className="mr-2 h-4 w-4 text-muted-foreground" /> Your Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /> Your Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="john.doe@example.com" {...field} disabled={isSubmitting} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
               <FormField
                 control={form.control}
-                name="subject"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center"><MessageSquare className="mr-2 h-4 w-4 text-muted-foreground" /> Subject</FormLabel>
+                    <FormLabel className="flex items-center"><Mail className="mr-2 h-4 w-4 text-muted-foreground" /> Your Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Regarding your services..." {...field} disabled={isSubmitting} />
+                      <Input type="email" placeholder="you@example.com" {...field} disabled={isSubmitting || (isAuthenticated && !!user?.email)} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="message"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center"><MessageSquare className="mr-2 h-4 w-4 text-muted-foreground" /> Your Message</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Please type your message here..."
-                        className="resize-y min-h-[150px]"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
+                    {isAuthenticated && user?.email && (
+                        <p className="text-xs text-muted-foreground">You are logged in. We will use your account email: {user.email}</p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <Button type="submit" className="w-full sm:w-auto" disabled={isSubmitting || authLoading}>
                 <Send className="mr-2 h-4 w-4" />
-                {isSubmitting ? "Sending..." : "Send Message"}
+                {isSubmitting ? "Sending..." : "Send Email"}
               </Button>
             </form>
           </Form>
