@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, FlaskConical, Edit } from "lucide-react"; // Icons for create actions
+import { FilePlus2, FlaskConical, Edit, MessageSquareMore } from "lucide-react"; // Added MessageSquareMore
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
@@ -24,7 +24,6 @@ export default function DashboardPage() {
   }
 
   if (!isAuthenticated) {
-    // Should be handled by AuthContext/middleware ideally, but as a fallback:
     return (
       <PageWrapper>
         <div className="text-center py-10">
@@ -52,8 +51,8 @@ export default function DashboardPage() {
 
         {isAdmin ? (
           <>
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Create New Content</h2>
-            <div className="grid md:grid-cols-3 gap-6">
+            <h2 className="text-2xl font-semibold mt-8 mb-4">Content Creation</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Link href="/dashboard/create-product" passHref>
                 <Card className="hover:shadow-xl transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -102,17 +101,42 @@ export default function DashboardPage() {
                 </Card>
               </Link>
             </div>
+            <h2 className="text-2xl font-semibold mt-10 mb-4">Management</h2>
+             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Link href="/dashboard/feedback-management" passHref>
+                    <Card className="hover:shadow-xl transition-shadow cursor-pointer">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-lg font-medium">
+                        Manage Feedback
+                        </CardTitle>
+                        <MessageSquareMore className="h-6 w-6 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                        View and respond to user feedback.
+                        </p>
+                    </CardContent>
+                    </Card>
+                </Link>
+             </div>
           </>
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle>Restricted Access</CardTitle>
+              <CardTitle>User Dashboard</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                You do not have the necessary permissions to create new content.
-                Please contact the administrator if you believe this is an error.
+                Welcome to your dashboard! View your profile and submitted feedback.
               </p>
+              <div className="mt-4 space-x-3">
+                <Button asChild>
+                    <Link href="/profile">View Profile</Link>
+                </Button>
+                 <Button asChild variant="outline">
+                    <Link href="/profile/my-feedback">My Feedback</Link>
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

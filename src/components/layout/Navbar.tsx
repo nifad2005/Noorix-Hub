@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState } from "react"; // Added useState
+import React, { useState } from "react"; 
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/icons/Logo";
@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn } from "lucide-react";
+import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn, MessageSquareHeart } from "lucide-react"; // Added MessageSquareHeart
 
 export function Navbar() {
   const { isAuthenticated, user, logout, loading } = useAuth();
@@ -30,7 +30,7 @@ export function Navbar() {
   const handleMoreMenuClose = () => {
     hoverTimeout = setTimeout(() => {
       setIsMoreMenuOpen(false);
-    }, 200); // Delay to allow mouse to move to content
+    }, 200); 
   };
 
   const getInitials = (name: string = "") => {
@@ -76,7 +76,6 @@ export function Navbar() {
                   className="group flex items-center"
                   onMouseEnter={handleMoreMenuOpen}
                   onMouseLeave={handleMoreMenuClose}
-                  // onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)} // Retain click for accessibility if desired / touch
                 >
                   More
                   <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
@@ -84,9 +83,9 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56" // Made wider
-                onMouseEnter={handleMoreMenuOpen} // Keep open if mouse enters content
-                onMouseLeave={handleMoreMenuClose} // Close if mouse leaves content
+                className="w-56" 
+                onMouseEnter={handleMoreMenuOpen} 
+                onMouseLeave={handleMoreMenuClose} 
               >
                 {moreLinks.map((link) => (
                   <DropdownMenuItem key={link.label} asChild>
@@ -127,6 +126,12 @@ export function Navbar() {
                     <Link href="/profile">
                       <User className="mr-2 h-4 w-4" />
                       Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile/my-feedback">
+                      <MessageSquareHeart className="mr-2 h-4 w-4" />
+                      My Feedback
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
@@ -171,6 +176,12 @@ export function Navbar() {
                       <Link href="/profile" className="w-full flex justify-start">
                         <User className="mr-2 h-4 w-4" />
                         Profile
+                      </Link>
+                    </DropdownMenuItem>
+                     <DropdownMenuItem asChild>
+                      <Link href="/profile/my-feedback" className="w-full flex justify-start">
+                        <MessageSquareHeart className="mr-2 h-4 w-4" />
+                        My Feedback
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
