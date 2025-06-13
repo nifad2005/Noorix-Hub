@@ -84,6 +84,10 @@ export default function ExperimentsPage() {
     fetchExperiments(1, debouncedSearchTerm, selectedCategory, selectedTag, false);
   }, [debouncedSearchTerm, selectedCategory, selectedTag, fetchExperiments]);
 
+  const handleExperimentDeleted = (deletedExperimentId: string) => {
+    setExperiments(prevExperiments => prevExperiments.filter(exp => exp._id !== deletedExperimentId));
+  };
+
   const lastExperimentElementRef = useCallback(
     (node: HTMLDivElement) => {
       if (loading || loadingMore || !hasMore) return;
@@ -158,14 +162,15 @@ export default function ExperimentsPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {experiments.map((experiment, index) => {
+              const card = <ExperimentCard key={experiment._id} experiment={experiment} onExperimentDeleted={handleExperimentDeleted} />;
               if (experiments.length === index + 1) {
                 return (
                   <div ref={lastExperimentElementRef} key={experiment._id}>
-                    <ExperimentCard experiment={experiment} />
+                    {card}
                   </div>
                 );
               } else {
-                return <ExperimentCard key={experiment._id} experiment={experiment} />;
+                return card;
               }
             })}
           </div>

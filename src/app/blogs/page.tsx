@@ -19,7 +19,6 @@ export default function BlogsPage() {
   const [blogs, setBlogs] = useState<BlogSummary[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  // const [totalPages, setTotalPages] = useState(1); // totalPages might not be needed if using infinite scroll primarily
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -31,17 +30,16 @@ export default function BlogsPage() {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const observer = useRef<IntersectionObserver | null>(null);
-  // const loadMoreRef = useRef<HTMLDivElement | null>(null); // Not strictly needed if lastBlogElementRef is used for the sentinel
 
   const fetchDistinctTags = useCallback(async () => {
     try {
       const response = await fetch('/api/blogs/distinct-tags');
       if (!response.ok) throw new Error('Failed to fetch tags');
       const tagsData = await response.json();
-      setAllTags(['All', ...tagsData.filter((tag: string | null) => tag)]); // Ensure 'All' is first and filter nulls
+      setAllTags(['All', ...tagsData.filter((tag: string | null) => tag)]); 
     } catch (error) {
       console.error("Error fetching distinct tags:", error);
-      setAllTags(['All']); // Fallback
+      setAllTags(['All']); 
     }
   }, []);
 
@@ -65,12 +63,10 @@ export default function BlogsPage() {
       
       setBlogs(prevBlogs => append ? [...prevBlogs, ...data.blogs] : data.blogs);
       setCurrentPage(data.currentPage);
-      // setTotalPages(data.totalPages); // Not strictly needed for infinite scroll
       setHasMore(data.hasMore);
 
     } catch (error) {
       console.error("Error fetching blogs:", error);
-      // Potentially set an error state here to show to user
     } finally {
       if (append) setLoadingMore(false); else setLoading(false);
       if(initialLoad) setInitialLoad(false);
@@ -82,11 +78,15 @@ export default function BlogsPage() {
   }, [fetchDistinctTags]);
   
   useEffect(() => {
-    setBlogs([]); // Reset blogs when filters change
-    setCurrentPage(1); // Reset to first page
-    setHasMore(true); // Assume there's more data
+    setBlogs([]); 
+    setCurrentPage(1); 
+    setHasMore(true); 
     fetchBlogs(1, debouncedSearchTerm, selectedCategory, selectedTag, false);
   }, [debouncedSearchTerm, selectedCategory, selectedTag, fetchBlogs]);
+
+  const handleBlogDeleted = (deletedBlogId: string) => {
+    setBlogs(prevBlogs => prevBlogs.filter(b => b._id !== deletedBlogId));
+  };
 
   const lastBlogElementRef = useCallback(
     (node: HTMLDivElement) => {
@@ -116,7 +116,6 @@ export default function BlogsPage() {
         </header>
 
         <div className="space-y-6">
-          {/* Search Input */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
@@ -128,7 +127,6 @@ export default function BlogsPage() {
             />
           </div>
 
-          {/* Filters */}
           <div className="space-y-4">
             <Tabs value={selectedCategory} onValueChange={(value) => {setSelectedCategory(value); setCurrentPage(1);}} className="w-full">
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-2">
@@ -140,7 +138,7 @@ export default function BlogsPage() {
               </TabsList>
             </Tabs>
 
-            {allTags.length > 1 && ( // Only show if there are tags beyond "All"
+            {allTags.length > 1 && ( 
               <Tabs value={selectedTag} onValueChange={(value) => {setSelectedTag(value); setCurrentPage(1);}} className="w-full">
                  <TabsList className="flex flex-wrap justify-start gap-2 h-auto py-2">
                     {allTags.map(tag => (
@@ -163,16 +161,17 @@ export default function BlogsPage() {
             <p className="text-xl text-muted-foreground">No blog posts found matching your criteria.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> {/* Adjusted for horizontal cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> 
             {blogs.map((blog, index) => {
-              if (blogs.length === index + 1) { // Last element
+              const card = <BlogCard key={blog._id} blog={blog} onBlogDeleted={handleBlogDeleted} />;
+              if (blogs.length === index + 1) { 
                 return (
                   <div ref={lastBlogElementRef} key={blog._id}>
-                    <BlogCard blog={blog} />
+                    {card}
                   </div>
                 );
               } else {
-                return <BlogCard key={blog._id} blog={blog} />;
+                return card;
               }
             })}
           </div>

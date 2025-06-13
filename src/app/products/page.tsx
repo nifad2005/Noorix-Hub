@@ -14,7 +14,6 @@ type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 const ITEMS_PER_PAGE = 9;
 const CATEGORIES = ["All", "WEB DEVELOPMENT", "ML", "AI"];
-// Statuses will be fetched dynamically
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductSummary[]>([]);
@@ -100,6 +99,12 @@ export default function ProductsPage() {
     setHasMore(true);
     fetchProducts(1, debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, false);
   }, [debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, fetchProducts]);
+
+  const handleProductDeleted = (deletedProductId: string) => {
+    setProducts(prevProducts => prevProducts.filter(p => p._id !== deletedProductId));
+    // Optionally, could refetch the current page to ensure data consistency if counts change significantly
+    // fetchProducts(currentPage, debouncedSearchTerm, selectedCategory, selectedTag, selectedStatus, false);
+  };
 
   const lastProductElementRef = useCallback(
     (node: HTMLDivElement) => {
@@ -187,14 +192,15 @@ export default function ProductsPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {products.map((product, index) => {
+              const card = <ProductCard key={product._id} product={product} onProductDeleted={handleProductDeleted} />;
               if (products.length === index + 1) {
                 return (
                   <div ref={lastProductElementRef} key={product._id}>
-                    <ProductCard product={product} />
+                    {card}
                   </div>
                 );
               } else {
-                return <ProductCard key={product._id} product={product} />;
+                return card;
               }
             })}
           </div>
