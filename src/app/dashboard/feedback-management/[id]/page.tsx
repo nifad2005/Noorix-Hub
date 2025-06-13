@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { IFeedback, FeedbackStatus } from "@/models/Feedback";
 import { Loader2, AlertCircle, ArrowLeft, Send } from "lucide-react";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedFeedbackStatuses: [FeedbackStatus, ...FeedbackStatus[]] = ["New", "In Progress", "Resolved", "Closed"];
@@ -56,6 +57,7 @@ export default function FeedbackDetailPageAdmin() {
         fetchFeedbackItem();
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading, router, feedbackId]);
 
   const fetchFeedbackItem = async () => {
@@ -204,6 +206,7 @@ export default function FeedbackDetailPageAdmin() {
                           placeholder="Type your response here..."
                           className="resize-y min-h-[120px]"
                           {...field}
+                          value={field.value ?? ""}
                           disabled={isSubmitting}
                         />
                       </FormControl>
