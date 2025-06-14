@@ -10,6 +10,7 @@ html {
 body {
   font-family: 'Inter', Arial, Helvetica, sans-serif;
   scrollbar-gutter: stable; /* Also apply to body for good measure */
+  overflow-x: hidden; /* Prevent horizontal scroll & potential shifts */
 }
 
 @layer base {
