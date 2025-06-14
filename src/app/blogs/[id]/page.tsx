@@ -9,28 +9,10 @@ import { notFound } from "next/navigation";
 
 async function getBlog(id: string): Promise<IBlog | null> {
   console.log(`[getBlog] Received ID: ${id}`);
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getBlog] Using VERCEL_URL: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-     determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getBlog] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002';
-    console.log(`[getBlog] Using local development domain: ${determinedDomain}`);
-  }
-
-  if (!determinedDomain) {
-    console.error(`[getBlog] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    return null;
-  }
-
-  const fetchUrl = `${determinedDomain}/api/blogs/${id}`;
-  console.log(`[getBlog] Attempting to fetch from URL: ${fetchUrl}`);
+  
+  // Using relative path for API call from Server Component
+  const fetchUrl = `/api/blogs/${id}`;
+  console.log(`[getBlog] Attempting to fetch from relative URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -40,22 +22,21 @@ async function getBlog(id: string): Promise<IBlog | null> {
       const responseText = await res.text().catch(() => "Could not read response body");
       console.error(`[getBlog] Failed to fetch blog. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
       if (res.status === 404) {
-        console.log(`[getBlog] API returned 404 for blog ID ${id}. Returning null to trigger notFound().`);
+        console.log(`[getBlog] API returned 404 for blog ID ${id}.`);
       }
       return null;
     }
 
     try {
       const data = await res.json();
-      console.log(`[getBlog] Successfully fetched blog data for ID ${id}.`);
+      console.log(`[getBlog] Successfully fetched blog data for ID ${id}. Title: ${data.title}`);
       return data;
     } catch (jsonError) {
       console.error(`[getBlog] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
       // Attempt to read response as text for further debugging if JSON parsing failed.
-      // Note: res.text() can only be consumed once.
-      // const responseTextForJsonError = await res.text().catch(() => "Could not read response body after JSON parse error");
-      // console.error(`[getBlog] Response text after JSON parse error: ${responseTextForJsonError}`);
-      return null; // Trigger notFound()
+      const responseTextForJsonError = await fetch(fetchUrl).then(r => r.text()).catch(() => "Could not read response body after JSON parse error on retry");
+      console.error(`[getBlog] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
+      return null; 
     }
   } catch (error) {
     console.error(`[getBlog] Catch block: Fetch error for URL ${fetchUrl}:`, error);

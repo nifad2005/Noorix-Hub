@@ -11,28 +11,10 @@ import { notFound } from "next/navigation";
 
 async function getExperiment(id: string): Promise<IExperiment | null> {
   console.log(`[getExperiment] Received ID: ${id}`);
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getExperiment] Using VERCEL_URL: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-     determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getExperiment] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002';
-    console.log(`[getExperiment] Using local development domain: ${determinedDomain}`);
-  }
   
-  if (!determinedDomain) {
-    console.error(`[getExperiment] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    return null;
-  }
-  
-  const fetchUrl = `${determinedDomain}/api/experiments/${id}`;
-  console.log(`[getExperiment] Attempting to fetch from URL: ${fetchUrl}`);
+  // Using relative path for API call from Server Component
+  const fetchUrl = `/api/experiments/${id}`;
+  console.log(`[getExperiment] Attempting to fetch from relative URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -42,18 +24,20 @@ async function getExperiment(id: string): Promise<IExperiment | null> {
       const responseText = await res.text().catch(() => "Could not read response body");
       console.error(`[getExperiment] Failed to fetch experiment. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
       if (res.status === 404) {
-         console.log(`[getExperiment] API returned 404 for experiment ID ${id}. Returning null to trigger notFound().`);
+         console.log(`[getExperiment] API returned 404 for experiment ID ${id}.`);
       }
       return null;
     }
     
     try {
       const data = await res.json();
-      console.log(`[getExperiment] Successfully fetched experiment data for ID ${id}.`);
+      console.log(`[getExperiment] Successfully fetched experiment data for ID ${id}. Title: ${data.title}`);
       return data;
     } catch (jsonError) {
       console.error(`[getExperiment] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-      return null; // Trigger notFound()
+      const responseTextForJsonError = await fetch(fetchUrl).then(r => r.text()).catch(() => "Could not read response body after JSON parse error on retry");
+      console.error(`[getExperiment] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
+      return null; 
     }
 
   } catch (error) {

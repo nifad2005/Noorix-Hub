@@ -12,28 +12,10 @@ import { notFound } from "next/navigation";
 
 async function getProduct(id: string): Promise<IProduct | null> {
   console.log(`[getProduct] Received ID: ${id}`);
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getProduct] Using VERCEL_URL: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getProduct] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002';
-    console.log(`[getProduct] Using local development domain: ${determinedDomain}`);
-  }
   
-  if (!determinedDomain) {
-    console.error(`[getProduct] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    return null;
-  }
-  
-  const fetchUrl = `${determinedDomain}/api/products/${id}`;
-  console.log(`[getProduct] Attempting to fetch from URL: ${fetchUrl}`);
+  // Using relative path for API call from Server Component
+  const fetchUrl = `/api/products/${id}`;
+  console.log(`[getProduct] Attempting to fetch from relative URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -43,18 +25,20 @@ async function getProduct(id: string): Promise<IProduct | null> {
       const responseText = await res.text().catch(() => "Could not read response body");
       console.error(`[getProduct] Failed to fetch product. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
       if (res.status === 404) {
-        console.log(`[getProduct] API returned 404 for product ID ${id}. Returning null to trigger notFound().`);
+        console.log(`[getProduct] API returned 404 for product ID ${id}.`);
       }
       return null;
     }
     
     try {
       const data = await res.json();
-      console.log(`[getProduct] Successfully fetched product data for ID ${id}.`);
+      console.log(`[getProduct] Successfully fetched product data for ID ${id}. Title: ${data.title}`);
       return data;
     } catch (jsonError) {
       console.error(`[getProduct] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-      return null; // Trigger notFound()
+      const responseTextForJsonError = await fetch(fetchUrl).then(r => r.text()).catch(() => "Could not read response body after JSON parse error on retry");
+      console.error(`[getProduct] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
+      return null; 
     }
 
   } catch (error) {

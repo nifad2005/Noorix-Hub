@@ -9,35 +9,24 @@ import { ExternalLink } from "lucide-react";
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 async function getFeaturedProducts(): Promise<ProductSummary[]> {
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002';
-  }
-
-  if (!determinedDomain) {
-    console.error("Error: Could not determine domain for API call in getFeaturedProducts. Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.");
-    return [];
-  }
-
-  const fetchUrl = `${determinedDomain}/api/products/list?status=featured&limit=4`;
+  // Using relative path for API call from Server Component
+  const fetchUrl = `/api/products/list?status=featured&limit=4`;
+  console.log(`[getFeaturedProducts] Attempting to fetch from relative URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
+     console.log(`[getFeaturedProducts] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+
     if (!res.ok) {
-      console.error(`Failed to fetch featured products: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
+      const responseText = await res.text().catch(() => "Could not read response body");
+      console.error(`[getFeaturedProducts] Failed to fetch featured products. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
       return [];
     }
     const data = await res.json();
+    console.log(`[getFeaturedProducts] Successfully fetched ${data.products?.length || 0} featured products.`);
     return data.products || [];
   } catch (error) {
-    console.error(`Fetch error in getFeaturedProducts for URL ${fetchUrl}:`, error);
+    console.error(`[getFeaturedProducts] Catch block: Fetch error for URL ${fetchUrl}:`, error);
     return [];
   }
 }
