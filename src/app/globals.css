@@ -5,12 +5,14 @@
 html {
   overflow-y: scroll; /* Force scrollbar to be visible, reserving space */
   scrollbar-gutter: stable; /* Reserve space for the scrollbar gutter */
+  overflow-x: hidden; /* Prevent horizontal scroll on html element */
+  width: 100%; /* Explicitly set width to prevent shifts */
 }
 
 body {
   font-family: 'Inter', Arial, Helvetica, sans-serif;
-  scrollbar-gutter: stable; /* Also apply to body for good measure */
   overflow-x: hidden; /* Prevent horizontal scroll & potential shifts */
+  width: 100%; /* Explicitly set width to prevent shifts */
 }
 
 @layer base {
