@@ -1,74 +1,47 @@
 
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import type { IBlog } from "@/models/Blog";
+import connectDB from "@/lib/db"; // Import connectDB
+import BlogModel from "@/models/Blog"; // Import Mongoose model
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Tag } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import mongoose from "mongoose";
 
 async function getBlog(id: string): Promise<IBlog | null> {
-  console.log(`[getBlog] Received ID: ${id}`);
-  
-  let determinedDomain: string | undefined;
+  console.log(`[getBlog DB] Received ID: ${id}`);
 
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getBlog] Using VERCEL_URL for domain: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getBlog] Using NEXT_PUBLIC_DOMAIN for domain: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002'; // Your dev port
-    console.log(`[getBlog] Using development localhost domain: ${determinedDomain}`);
-  } else {
-    console.warn('[getBlog] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode. Throwing error.');
-    throw new Error('Server configuration error: API domain could not be determined.');
-  }
-
-  const fetchUrl = `${determinedDomain}/api/blogs/${id}`;
-  console.log(`[getBlog] Attempting to fetch from absolute URL: ${fetchUrl}`);
-
-  let res: Response;
-  try {
-    res = await fetch(fetchUrl, { cache: 'no-store' });
-  } catch (fetchError) {
-    console.error(`[getBlog] Network fetch error for URL ${fetchUrl}:`, fetchError);
-    throw new Error(`Network error fetching blog post: ${(fetchError as Error).message}`);
-  }
-  
-  console.log(`[getBlog] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
-
-  if (res.status === 404) {
-    console.log(`[getBlog] API returned 404 for blog ID ${id}. Resource not found.`);
-    return null; // Explicitly not found
-  }
-
-  if (!res.ok) {
-    const responseText = await res.text().catch(() => "Could not read error response body");
-    console.error(`[getBlog] API error. Status: ${res.status}, URL: ${fetchUrl}, Response: ${responseText.substring(0, 500)}...`);
-    throw new Error(`API error fetching blog post: ${res.status} ${res.statusText}.`);
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    console.log(`[getBlog DB] Invalid blog ID format: ${id}. Returning null.`);
+    return null; // Will lead to notFound()
   }
 
   try {
-    const data = await res.json();
-    console.log(`[getBlog] Successfully fetched blog data for ID ${id}. Title: ${data.title}`);
-    return data;
-  } catch (jsonError) {
-    console.error(`[getBlog] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-    // Attempt to get response text if JSON parsing fails, for better debugging
-    let responseTextForJsonError = "Could not re-read response body after JSON parse error";
-    try {
-        // Re-clone the response to read its text body, as the original body might have been consumed
-        const textResponse = await res.clone().text();
-        responseTextForJsonError = textResponse;
-    } catch (textReadError) {
-        console.error(`[getBlog] Error trying to read response text after JSON parse failure:`, textReadError);
+    await connectDB();
+    console.log(`[getBlog DB] DB connected. Searching for blog with ID: ${id}`);
+    // Lean query for performance, and convert to plain JS object
+    const blogPost = await BlogModel.findById(id).lean<IBlog>();
+
+    if (!blogPost) {
+      console.log(`[getBlog DB] Blog post not found in DB for ID: ${id}. Returning null.`);
+      return null; // Will lead to notFound()
     }
-    console.error(`[getBlog] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
-    throw new Error(`Error parsing blog post data: ${(jsonError as Error).message}`);
+
+    // Convert ObjectId and other Mongoose types to strings if necessary for serialization
+    // .lean() usually handles this, but good to be aware
+    // For example, if createdBy was populated and you needed its string ID:
+    // if (blogPost.createdBy && typeof blogPost.createdBy !== 'string') {
+    //   blogPost.createdBy = blogPost.createdBy.toString();
+    // }
+
+    console.log(`[getBlog DB] Blog post found for ID: ${id}. Title: ${blogPost.title}`);
+    return JSON.parse(JSON.stringify(blogPost)) as IBlog; // Ensure plain object
+  } catch (error) {
+    console.error(`[getBlog DB] Error fetching blog post for ID: ${id}. Error:`, error);
+    // For database errors or other unexpected issues, throw to trigger error.js
+    throw new Error(`Error fetching blog post from database: ${(error as Error).message}`);
   }
 }
 
@@ -85,8 +58,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
   }
 
   if (!blog) {
-    // This will only be reached if getBlog returned null (API sent 404)
-    console.log(`[BlogDetailPage] Blog data not found for ID ${params.id} (API returned 404), calling notFound().`);
+    console.log(`[BlogDetailPage] Blog data not found for ID ${params.id}, calling notFound().`);
     notFound();
   }
 

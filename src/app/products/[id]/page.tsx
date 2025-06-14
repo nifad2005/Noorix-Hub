@@ -1,75 +1,40 @@
 
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import type { IProduct } from "@/models/Product";
+import connectDB from "@/lib/db"; // Import connectDB
+import ProductModel from "@/models/Product"; // Import Mongoose model
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Tag, ExternalLink, PlayCircle, ShieldCheck } from "lucide-react";
+import { CalendarDays, Tag, ExternalLink, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import mongoose from "mongoose";
 
 async function getProduct(id: string): Promise<IProduct | null> {
-  console.log(`[getProduct] Received ID: ${id}`);
+  console.log(`[getProduct DB] Received ID: ${id}`);
   
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getProduct] Using VERCEL_URL for domain: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getProduct] Using NEXT_PUBLIC_DOMAIN for domain: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002'; // Your dev port
-    console.log(`[getProduct] Using development localhost domain: ${determinedDomain}`);
-  } else {
-    console.warn('[getProduct] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode. Throwing error.');
-    throw new Error('Server configuration error: API domain could not be determined.');
+  if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    console.log(`[getProduct DB] Invalid product ID format: ${id}. Returning null.`);
+    return null;
   }
 
-  const fetchUrl = `${determinedDomain}/api/products/${id}`;
-  console.log(`[getProduct] Attempting to fetch from absolute URL: ${fetchUrl}`);
-
-  let res: Response;
   try {
-    res = await fetch(fetchUrl, { cache: 'no-store' });
-  } catch (fetchError) {
-    console.error(`[getProduct] Network fetch error for URL ${fetchUrl}:`, fetchError);
-    throw new Error(`Network error fetching product: ${(fetchError as Error).message}`);
-  }
+    await connectDB();
+    console.log(`[getProduct DB] DB connected. Searching for product with ID: ${id}`);
+    const productData = await ProductModel.findById(id).lean<IProduct>();
 
-  console.log(`[getProduct] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
-
-  if (res.status === 404) {
-    console.log(`[getProduct] API returned 404 for product ID ${id}. Resource not found.`);
-    return null; // Explicitly not found
-  }
-
-  if (!res.ok) {
-    const responseText = await res.text().catch(() => "Could not read error response body");
-    console.error(`[getProduct] API error. Status: ${res.status}, URL: ${fetchUrl}, Response: ${responseText.substring(0, 500)}...`);
-    throw new Error(`API error fetching product: ${res.status} ${res.statusText}.`);
-  }
-    
-  try {
-    const data = await res.json();
-    console.log(`[getProduct] Successfully fetched product data for ID ${id}. Title: ${data.title}`);
-    return data;
-  } catch (jsonError) {
-    console.error(`[getProduct] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-    let responseTextForJsonError = "Could not re-read response body after JSON parse error";
-    try {
-        const textResponse = await res.clone().text();
-        responseTextForJsonError = textResponse;
-    } catch (textReadError) {
-        console.error(`[getProduct] Error trying to read response text after JSON parse failure:`, textReadError);
+    if (!productData) {
+      console.log(`[getProduct DB] Product not found in DB for ID: ${id}. Returning null.`);
+      return null;
     }
-    console.error(`[getProduct] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
-    throw new Error(`Error parsing product data: ${(jsonError as Error).message}`);
+    
+    console.log(`[getProduct DB] Product found for ID: ${id}. Title: ${productData.title}`);
+    return JSON.parse(JSON.stringify(productData)) as IProduct;
+  } catch (error) {
+    console.error(`[getProduct DB] Error fetching product for ID: ${id}. Error:`, error);
+    throw new Error(`Error fetching product from database: ${(error as Error).message}`);
   }
 }
 
@@ -102,7 +67,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
   }
 
   if (!product) {
-    console.log(`[ProductDetailPage] Product data not found for ID ${params.id} (API returned 404), calling notFound().`);
+    console.log(`[ProductDetailPage] Product data not found for ID ${params.id}, calling notFound().`);
     notFound();
   }
 

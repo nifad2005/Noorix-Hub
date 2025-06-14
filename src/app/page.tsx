@@ -4,47 +4,41 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { ProductCard } from "@/components/product/ProductCard";
 import type { IProduct } from "@/models/Product";
+import connectDB from "@/lib/db"; // Import connectDB
+import ProductModel from "@/models/Product"; // Import Mongoose model
 import { ExternalLink } from "lucide-react";
 
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 async function getFeaturedProducts(): Promise<ProductSummary[]> {
-  let determinedDomain: string | undefined;
-
-  if (process.env.VERCEL_URL) {
-    determinedDomain = `https://${process.env.VERCEL_URL}`;
-    console.log(`[getFeaturedProducts] Using VERCEL_URL for domain: ${determinedDomain}`);
-  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
-    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
-      ? process.env.NEXT_PUBLIC_DOMAIN
-      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
-    console.log(`[getFeaturedProducts] Using NEXT_PUBLIC_DOMAIN for domain: ${determinedDomain}`);
-  } else if (process.env.NODE_ENV === 'development') {
-    determinedDomain = 'http://localhost:9002'; // Your dev port
-    console.log(`[getFeaturedProducts] Using development localhost domain: ${determinedDomain}`);
-  } else {
-    console.warn('[getFeaturedProducts] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode.');
-    return []; // Cannot make a reliable fetch call, return empty
-  }
-
-  const fetchUrl = `${determinedDomain}/api/products/list?status=featured&limit=4`;
-  console.log(`[getFeaturedProducts] Attempting to fetch from absolute URL: ${fetchUrl}`);
-
+  console.log(`[getFeaturedProducts DB] Attempting to fetch featured products from DB.`);
   try {
-    const res = await fetch(fetchUrl, { cache: 'no-store' });
-    console.log(`[getFeaturedProducts] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+    await connectDB();
+    const products = await ProductModel.find({ status: 'featured' })
+      .select({
+        title: 1,
+        description: { $substrCP: ['$description', 0, 150] }, // Snippet
+        category: 1,
+        tags: 1,
+        status: 1,
+        createdAt: 1,
+        _id: 1,
+      })
+      .sort({ createdAt: -1 })
+      .limit(4) // Limit to 4 featured products
+      .lean<IProduct[]>(); // Use .lean() for better performance and plain JS objects
 
-    if (!res.ok) {
-      const responseText = await res.text().catch(() => "Could not read response body");
-      console.error(`[getFeaturedProducts] Failed to fetch featured products. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
-      return [];
-    }
-    const data = await res.json();
-    console.log(`[getFeaturedProducts] Successfully fetched ${data.products?.length || 0} featured products.`);
-    return data.products || [];
+    const formattedProducts = products.map(product => ({
+      ...JSON.parse(JSON.stringify(product)), // Ensure plain object
+      snippet: product.description, // description here is already the snippet due to select
+      description: undefined, // remove the original description field from the response
+    }));
+    
+    console.log(`[getFeaturedProducts DB] Successfully fetched ${formattedProducts.length} featured products.`);
+    return formattedProducts;
   } catch (error) {
-    console.error(`[getFeaturedProducts] Catch block: Fetch error for URL ${fetchUrl}:`, error);
-    return [];
+    console.error(`[getFeaturedProducts DB] Error fetching featured products:`, error);
+    return []; // Return empty array on error
   }
 }
 
