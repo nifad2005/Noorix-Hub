@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 html {
-  overflow-y: scroll; /* Force scrollbar to prevent layout shift */
+  overflow-y: scroll; /* Force scrollbar to be visible, reserving space */
+  scrollbar-gutter: stable; /* Reserve space for the scrollbar gutter */
 }
 
 body {
   font-family: 'Inter', Arial, Helvetica, sans-serif;
+  scrollbar-gutter: stable; /* Also apply to body for good measure */
 }
 
 @layer base {
@@ -102,5 +104,6 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    /* font-family is set above and is more specific */
   }
 }
