@@ -10,35 +10,55 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getExperiment(id: string): Promise<IExperiment | null> {
+  console.log(`[getExperiment] Received ID: ${id}`);
   let determinedDomain: string | undefined;
 
   if (process.env.VERCEL_URL) {
     determinedDomain = `https://${process.env.VERCEL_URL}`;
+    console.log(`[getExperiment] Using VERCEL_URL: ${determinedDomain}`);
   } else if (process.env.NEXT_PUBLIC_DOMAIN) {
      determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
       ? process.env.NEXT_PUBLIC_DOMAIN
       : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+    console.log(`[getExperiment] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
   } else if (process.env.NODE_ENV === 'development') {
     determinedDomain = 'http://localhost:9002';
+    console.log(`[getExperiment] Using local development domain: ${determinedDomain}`);
   }
   
   if (!determinedDomain) {
-    console.error(`Error: Could not determine domain for API call in getExperiment (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    throw new Error("Configuration error: Cannot determine API domain.");
+    console.error(`[getExperiment] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
+    return null;
   }
   
   const fetchUrl = `${determinedDomain}/api/experiments/${id}`;
+  console.log(`[getExperiment] Attempting to fetch from URL: ${fetchUrl}`);
+
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
+    console.log(`[getExperiment] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+
     if (!res.ok) {
-      if (res.status === 404) return null;
-      console.error(`Failed to fetch experiment: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
-      throw new Error(`Failed to fetch experiment: ${res.statusText} (status: ${res.status})`);
+      const responseText = await res.text().catch(() => "Could not read response body");
+      console.error(`[getExperiment] Failed to fetch experiment. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
+      if (res.status === 404) {
+         console.log(`[getExperiment] API returned 404 for experiment ID ${id}. Returning null to trigger notFound().`);
+      }
+      return null;
     }
-    return res.json();
+    
+    try {
+      const data = await res.json();
+      console.log(`[getExperiment] Successfully fetched experiment data for ID ${id}.`);
+      return data;
+    } catch (jsonError) {
+      console.error(`[getExperiment] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
+      return null; // Trigger notFound()
+    }
+
   } catch (error) {
-     console.error(`Fetch error in getExperiment for URL ${fetchUrl}:`, error);
-    throw error;
+     console.error(`[getExperiment] Catch block: Fetch error for URL ${fetchUrl}:`, error);
+     return null;
   }
 }
 
@@ -61,14 +81,16 @@ function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
 }
 
 export default async function ExperimentDetailPage({ params }: { params: { id: string } }) {
+  console.log(`[ExperimentDetailPage] Rendering for experiment ID: ${params.id}`);
   let experiment: IExperiment | null = null;
   try {
     experiment = await getExperiment(params.id);
   } catch (error) {
-    // Error logged in getExperiment
+    console.error(`[ExperimentDetailPage] Error caught while calling getExperiment for ID ${params.id}:`, error);
   }
 
   if (!experiment) {
+    console.log(`[ExperimentDetailPage] Experiment data not found for ID ${params.id}, calling notFound().`);
     notFound();
   }
 

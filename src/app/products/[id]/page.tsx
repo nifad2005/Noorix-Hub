@@ -11,35 +11,55 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getProduct(id: string): Promise<IProduct | null> {
+  console.log(`[getProduct] Received ID: ${id}`);
   let determinedDomain: string | undefined;
 
   if (process.env.VERCEL_URL) {
     determinedDomain = `https://${process.env.VERCEL_URL}`;
+    console.log(`[getProduct] Using VERCEL_URL: ${determinedDomain}`);
   } else if (process.env.NEXT_PUBLIC_DOMAIN) {
     determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
       ? process.env.NEXT_PUBLIC_DOMAIN
       : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+    console.log(`[getProduct] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
   } else if (process.env.NODE_ENV === 'development') {
     determinedDomain = 'http://localhost:9002';
+    console.log(`[getProduct] Using local development domain: ${determinedDomain}`);
   }
   
   if (!determinedDomain) {
-    console.error(`Error: Could not determine domain for API call in getProduct (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    throw new Error("Configuration error: Cannot determine API domain.");
+    console.error(`[getProduct] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
+    return null;
   }
   
   const fetchUrl = `${determinedDomain}/api/products/${id}`;
+  console.log(`[getProduct] Attempting to fetch from URL: ${fetchUrl}`);
+
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
+    console.log(`[getProduct] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+
     if (!res.ok) {
-      if (res.status === 404) return null;
-      console.error(`Failed to fetch product: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
-      throw new Error(`Failed to fetch product: ${res.statusText} (status: ${res.status})`);
+      const responseText = await res.text().catch(() => "Could not read response body");
+      console.error(`[getProduct] Failed to fetch product. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
+      if (res.status === 404) {
+        console.log(`[getProduct] API returned 404 for product ID ${id}. Returning null to trigger notFound().`);
+      }
+      return null;
     }
-    return res.json();
+    
+    try {
+      const data = await res.json();
+      console.log(`[getProduct] Successfully fetched product data for ID ${id}.`);
+      return data;
+    } catch (jsonError) {
+      console.error(`[getProduct] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
+      return null; // Trigger notFound()
+    }
+
   } catch (error) {
-    console.error(`Fetch error in getProduct for URL ${fetchUrl}:`, error);
-    throw error;
+    console.error(`[getProduct] Catch block: Fetch error for URL ${fetchUrl}:`, error);
+    return null;
   }
 }
 
@@ -62,14 +82,16 @@ function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
 }
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+  console.log(`[ProductDetailPage] Rendering for product ID: ${params.id}`);
   let product: IProduct | null = null;
   try {
     product = await getProduct(params.id);
   } catch (error) {
-     // Error logged in getProduct
+     console.error(`[ProductDetailPage] Error caught while calling getProduct for ID ${params.id}:`, error);
   }
 
   if (!product) {
+    console.log(`[ProductDetailPage] Product data not found for ID ${params.id}, calling notFound().`);
     notFound();
   }
 

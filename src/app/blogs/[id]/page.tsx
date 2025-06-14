@@ -26,8 +26,6 @@ async function getBlog(id: string): Promise<IBlog | null> {
 
   if (!determinedDomain) {
     console.error(`[getBlog] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    // This path should ideally not be hit if environment is configured.
-    // Returning null here will lead to a 404, which is consistent with user's observation if domain determination fails silently.
     return null;
   }
 
@@ -43,20 +41,24 @@ async function getBlog(id: string): Promise<IBlog | null> {
       console.error(`[getBlog] Failed to fetch blog. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
       if (res.status === 404) {
         console.log(`[getBlog] API returned 404 for blog ID ${id}. Returning null to trigger notFound().`);
-        return null;
       }
-      // For other non-ok statuses, we might still want to trigger notFound or a specific error page.
-      // For simplicity, returning null for any non-200 to show 404.
-      // Or, throw new Error to show a generic error page:
-      // throw new Error(`Failed to fetch blog: ${res.statusText} (status: ${res.status})`);
-      return null; // Triggers notFound()
+      return null;
     }
-    const data = await res.json();
-    console.log(`[getBlog] Successfully fetched blog data for ID ${id}.`);
-    return data;
+
+    try {
+      const data = await res.json();
+      console.log(`[getBlog] Successfully fetched blog data for ID ${id}.`);
+      return data;
+    } catch (jsonError) {
+      console.error(`[getBlog] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
+      // Attempt to read response as text for further debugging if JSON parsing failed.
+      // Note: res.text() can only be consumed once.
+      // const responseTextForJsonError = await res.text().catch(() => "Could not read response body after JSON parse error");
+      // console.error(`[getBlog] Response text after JSON parse error: ${responseTextForJsonError}`);
+      return null; // Trigger notFound()
+    }
   } catch (error) {
     console.error(`[getBlog] Catch block: Fetch error for URL ${fetchUrl}:`, error);
-    // In case of a network error or similar, returning null will lead to a 404.
     return null;
   }
 }
@@ -67,9 +69,6 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
   try {
     blog = await getBlog(params.id);
   } catch (error) {
-    // Errors during getBlog (like network issues if not caught inside getBlog)
-    // are already logged by getBlog.
-    // Here, we ensure blog remains null to trigger notFound().
     console.error(`[BlogDetailPage] Error caught while calling getBlog for ID ${params.id}:`, error);
   }
 
