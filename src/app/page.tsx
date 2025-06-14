@@ -9,13 +9,30 @@ import { ExternalLink } from "lucide-react";
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 async function getFeaturedProducts(): Promise<ProductSummary[]> {
-  // Using relative path for API call from Server Component
-  const fetchUrl = `/api/products/list?status=featured&limit=4`;
-  console.log(`[getFeaturedProducts] Attempting to fetch from relative URL: ${fetchUrl}`);
+  let determinedDomain: string | undefined;
+
+  if (process.env.VERCEL_URL) {
+    determinedDomain = `https://${process.env.VERCEL_URL}`;
+    console.log(`[getFeaturedProducts] Using VERCEL_URL for domain: ${determinedDomain}`);
+  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
+    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
+      ? process.env.NEXT_PUBLIC_DOMAIN
+      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+    console.log(`[getFeaturedProducts] Using NEXT_PUBLIC_DOMAIN for domain: ${determinedDomain}`);
+  } else if (process.env.NODE_ENV === 'development') {
+    determinedDomain = 'http://localhost:9002'; // Your dev port
+    console.log(`[getFeaturedProducts] Using development localhost domain: ${determinedDomain}`);
+  } else {
+    console.warn('[getFeaturedProducts] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode.');
+    return []; // Cannot make a reliable fetch call, return empty
+  }
+
+  const fetchUrl = `${determinedDomain}/api/products/list?status=featured&limit=4`;
+  console.log(`[getFeaturedProducts] Attempting to fetch from absolute URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
-     console.log(`[getFeaturedProducts] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+    console.log(`[getFeaturedProducts] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
 
     if (!res.ok) {
       const responseText = await res.text().catch(() => "Could not read response body");

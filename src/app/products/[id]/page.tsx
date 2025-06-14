@@ -13,9 +13,26 @@ import { notFound } from "next/navigation";
 async function getProduct(id: string): Promise<IProduct | null> {
   console.log(`[getProduct] Received ID: ${id}`);
   
-  // Using relative path for API call from Server Component
-  const fetchUrl = `/api/products/${id}`;
-  console.log(`[getProduct] Attempting to fetch from relative URL: ${fetchUrl}`);
+  let determinedDomain: string | undefined;
+
+  if (process.env.VERCEL_URL) {
+    determinedDomain = `https://${process.env.VERCEL_URL}`;
+    console.log(`[getProduct] Using VERCEL_URL for domain: ${determinedDomain}`);
+  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
+    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
+      ? process.env.NEXT_PUBLIC_DOMAIN
+      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+    console.log(`[getProduct] Using NEXT_PUBLIC_DOMAIN for domain: ${determinedDomain}`);
+  } else if (process.env.NODE_ENV === 'development') {
+    determinedDomain = 'http://localhost:9002'; // Your dev port
+    console.log(`[getProduct] Using development localhost domain: ${determinedDomain}`);
+  } else {
+    console.warn('[getProduct] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode.');
+    return null;
+  }
+
+  const fetchUrl = `${determinedDomain}/api/products/${id}`;
+  console.log(`[getProduct] Attempting to fetch from absolute URL: ${fetchUrl}`);
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
@@ -36,7 +53,7 @@ async function getProduct(id: string): Promise<IProduct | null> {
       return data;
     } catch (jsonError) {
       console.error(`[getProduct] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-      const responseTextForJsonError = await fetch(fetchUrl).then(r => r.text()).catch(() => "Could not read response body after JSON parse error on retry");
+      const responseTextForJsonError = await res.text().catch(() => "Could not read response body after JSON parse error");
       console.error(`[getProduct] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
       return null; 
     }
