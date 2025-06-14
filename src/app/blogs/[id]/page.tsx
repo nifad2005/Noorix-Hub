@@ -8,49 +8,73 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 async function getBlog(id: string): Promise<IBlog | null> {
+  console.log(`[getBlog] Received ID: ${id}`);
   let determinedDomain: string | undefined;
 
   if (process.env.VERCEL_URL) {
     determinedDomain = `https://${process.env.VERCEL_URL}`;
+    console.log(`[getBlog] Using VERCEL_URL: ${determinedDomain}`);
   } else if (process.env.NEXT_PUBLIC_DOMAIN) {
      determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
       ? process.env.NEXT_PUBLIC_DOMAIN
       : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+    console.log(`[getBlog] Using NEXT_PUBLIC_DOMAIN: ${determinedDomain}`);
   } else if (process.env.NODE_ENV === 'development') {
     determinedDomain = 'http://localhost:9002';
+    console.log(`[getBlog] Using local development domain: ${determinedDomain}`);
   }
 
   if (!determinedDomain) {
-    console.error(`Error: Could not determine domain for API call in getBlog (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
-    // For detail pages, it's usually better to throw an error or return null to trigger notFound()
-    // if the base URL can't be determined, as fetching will fail.
-    throw new Error("Configuration error: Cannot determine API domain.");
+    console.error(`[getBlog] Error: Could not determine domain for API call (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
+    // This path should ideally not be hit if environment is configured.
+    // Returning null here will lead to a 404, which is consistent with user's observation if domain determination fails silently.
+    return null;
   }
 
   const fetchUrl = `${determinedDomain}/api/blogs/${id}`;
+  console.log(`[getBlog] Attempting to fetch from URL: ${fetchUrl}`);
+
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
+    console.log(`[getBlog] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+
     if (!res.ok) {
-      if (res.status === 404) return null;
-      console.error(`Failed to fetch blog: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
-      throw new Error(`Failed to fetch blog: ${res.statusText} (status: ${res.status})`);
+      const responseText = await res.text().catch(() => "Could not read response body");
+      console.error(`[getBlog] Failed to fetch blog. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
+      if (res.status === 404) {
+        console.log(`[getBlog] API returned 404 for blog ID ${id}. Returning null to trigger notFound().`);
+        return null;
+      }
+      // For other non-ok statuses, we might still want to trigger notFound or a specific error page.
+      // For simplicity, returning null for any non-200 to show 404.
+      // Or, throw new Error to show a generic error page:
+      // throw new Error(`Failed to fetch blog: ${res.statusText} (status: ${res.status})`);
+      return null; // Triggers notFound()
     }
-    return res.json();
+    const data = await res.json();
+    console.log(`[getBlog] Successfully fetched blog data for ID ${id}.`);
+    return data;
   } catch (error) {
-    console.error(`Fetch error in getBlog for URL ${fetchUrl}:`, error);
-    throw error; 
+    console.error(`[getBlog] Catch block: Fetch error for URL ${fetchUrl}:`, error);
+    // In case of a network error or similar, returning null will lead to a 404.
+    return null;
   }
 }
 
 export default async function BlogDetailPage({ params }: { params: { id: string } }) {
+  console.log(`[BlogDetailPage] Rendering for blog ID: ${params.id}`);
   let blog: IBlog | null = null;
   try {
     blog = await getBlog(params.id);
   } catch (error) {
-    // Error already logged in getBlog
+    // Errors during getBlog (like network issues if not caught inside getBlog)
+    // are already logged by getBlog.
+    // Here, we ensure blog remains null to trigger notFound().
+    console.error(`[BlogDetailPage] Error caught while calling getBlog for ID ${params.id}:`, error);
   }
 
   if (!blog) {
+    console.log(`[BlogDetailPage] Blog data not found for ID ${params.id}, calling notFound().`);
     notFound();
   }
 
@@ -88,7 +112,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
           </CardHeader>
 
           <CardContent className="p-6">
-            <div 
+            <div
               className="prose prose-lg max-w-none dark:prose-invert text-foreground text-base md:text-lg leading-relaxed whitespace-pre-wrap"
             >
               {blog.content}

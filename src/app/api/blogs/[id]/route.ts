@@ -10,22 +10,28 @@ const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
+  console.log(`[API GET /api/blogs/:id] Received request for ID: ${id}`);
 
   if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+    console.log(`[API GET /api/blogs/:id] Invalid blog ID format: ${id}`);
     return NextResponse.json({ message: 'Invalid blog ID' }, { status: 400 });
   }
 
   try {
+    console.log(`[API GET /api/blogs/:id] Attempting to connect to DB for ID: ${id}`);
     await connectDB();
+    console.log(`[API GET /api/blogs/:id] DB connected. Searching for blog with ID: ${id}`);
     const blog = await Blog.findById(id);
 
     if (!blog) {
+      console.log(`[API GET /api/blogs/:id] Blog post not found in DB for ID: ${id}. Returning 404.`);
       return NextResponse.json({ message: 'Blog post not found' }, { status: 404 });
     }
 
+    console.log(`[API GET /api/blogs/:id] Blog post found for ID: ${id}. Title: ${blog.title}`);
     return NextResponse.json(blog);
   } catch (error) {
-    console.error('Error fetching blog post:', error);
+    console.error(`[API GET /api/blogs/:id] Error fetching blog post for ID: ${id}. Error:`, error);
     if (error instanceof Error) {
         return NextResponse.json({ message: 'Error fetching blog post', error: error.message }, { status: 500 });
     }
@@ -47,9 +53,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   try {
     await connectDB();
     const body = await request.json();
-    
-    const tagsArray = body.tags ? body.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
-    
+
+    const tagsArray = body.tags ? String(body.tags).split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
+
     const updatedBlogData = {
       ...body,
       tags: tagsArray,
@@ -64,7 +70,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     return NextResponse.json({ message: 'Blog post updated successfully', blog });
   } catch (error) {
-    console.error('Error updating blog post:', error);
+    console.error('[API PUT /api/blogs/:id] Error updating blog post:', error);
     if (error instanceof mongoose.Error.ValidationError) {
       return NextResponse.json({ message: 'Validation error', errors: error.errors }, { status: 400 });
     }
@@ -96,7 +102,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
 
     return NextResponse.json({ message: 'Blog post deleted successfully' });
   } catch (error) {
-    console.error('Error deleting blog post:', error);
+    console.error('[API DELETE /api/blogs/:id] Error deleting blog post:', error);
     if (error instanceof Error) {
         return NextResponse.json({ message: 'Error deleting blog post', error: error.message }, { status: 500 });
     }
