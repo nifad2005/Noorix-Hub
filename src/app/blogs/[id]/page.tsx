@@ -8,17 +8,40 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 async function getBlog(id: string): Promise<IBlog | null> {
-  const domain = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:9002';
-  const res = await fetch(`${domain}/api/blogs/${id}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error(`Failed to fetch blog: ${res.statusText} (status: ${res.status})`);
+  let domain = process.env.NEXT_PUBLIC_DOMAIN;
+  if (process.env.VERCEL_URL) {
+    domain = `https://${process.env.VERCEL_URL}`;
+  } else if (!domain && process.env.NODE_ENV === 'development') {
+    domain = 'http://localhost:9002';
+  } else if (!domain) {
+    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set for getBlog. Fetching might fail.");
   }
-  return res.json();
+
+  const fetchUrl = `${domain}/api/blogs/${id}`;
+  try {
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      console.error(`Failed to fetch blog: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
+      throw new Error(`Failed to fetch blog: ${res.statusText} (status: ${res.status})`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(`Fetch error in getBlog for URL ${fetchUrl}:`, error);
+    // Depending on how you want to handle this, you might re-throw, return null, or redirect.
+    // For now, let's align with existing behavior which might lead to notFound() if error occurs.
+    throw error; // Re-throw to be caught by Next.js error handling or a try-catch in the component
+  }
 }
 
 export default async function BlogDetailPage({ params }: { params: { id: string } }) {
-  const blog = await getBlog(params.id);
+  let blog: IBlog | null = null;
+  try {
+    blog = await getBlog(params.id);
+  } catch (error) {
+    // Error already logged in getBlog, notFound will be triggered if blog remains null
+  }
+
 
   if (!blog) {
     notFound();

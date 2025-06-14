@@ -11,13 +11,28 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getProduct(id: string): Promise<IProduct | null> {
-  const domain = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:9002';
-  const res = await fetch(`${domain}/api/products/${id}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error(`Failed to fetch product: ${res.statusText} (status: ${res.status})`);
+  let domain = process.env.NEXT_PUBLIC_DOMAIN;
+  if (process.env.VERCEL_URL) {
+    domain = `https://${process.env.VERCEL_URL}`;
+  } else if (!domain && process.env.NODE_ENV === 'development') {
+    domain = 'http://localhost:9002';
+  } else if (!domain) {
+    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set for getProduct. Fetching might fail.");
   }
-  return res.json();
+  
+  const fetchUrl = `${domain}/api/products/${id}`;
+  try {
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      console.error(`Failed to fetch product: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
+      throw new Error(`Failed to fetch product: ${res.statusText} (status: ${res.status})`);
+    }
+    return res.json();
+  } catch (error) {
+    console.error(`Fetch error in getProduct for URL ${fetchUrl}:`, error);
+    throw error;
+  }
 }
 
 function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
@@ -25,7 +40,7 @@ function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
   let videoId = null;
   const patterns = [
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/watch\?v=([^&]+)/,
-    /(?:https?:\/\/)?youtu\.be\/([^?]+)/,
+    /(?:https?:\/\/youtu\.be\/([^?]+))/,
     /(?:https?:\/\/)?(?:www\.)?youtube\.com\/embed\/([^?]+)/,
   ];
   for (const pattern of patterns) {
@@ -39,7 +54,12 @@ function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
 }
 
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = await getProduct(params.id);
+  let product: IProduct | null = null;
+  try {
+    product = await getProduct(params.id);
+  } catch (error) {
+     // Error logged in getProduct
+  }
 
   if (!product) {
     notFound();

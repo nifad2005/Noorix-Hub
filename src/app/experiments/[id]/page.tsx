@@ -10,13 +10,28 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getExperiment(id: string): Promise<IExperiment | null> {
-  const domain = process.env.NEXT_PUBLIC_DOMAIN || 'http://localhost:9002';
-  const res = await fetch(`${domain}/api/experiments/${id}`, { cache: 'no-store' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error(`Failed to fetch experiment: ${res.statusText} (status: ${res.status})`);
+  let domain = process.env.NEXT_PUBLIC_DOMAIN;
+  if (process.env.VERCEL_URL) {
+    domain = `https://${process.env.VERCEL_URL}`;
+  } else if (!domain && process.env.NODE_ENV === 'development') {
+    domain = 'http://localhost:9002';
+  } else if (!domain) {
+    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set for getExperiment. Fetching might fail.");
   }
-  return res.json();
+  
+  const fetchUrl = `${domain}/api/experiments/${id}`;
+  try {
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      if (res.status === 404) return null;
+      console.error(`Failed to fetch experiment: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
+      throw new Error(`Failed to fetch experiment: ${res.statusText} (status: ${res.status})`);
+    }
+    return res.json();
+  } catch (error) {
+     console.error(`Fetch error in getExperiment for URL ${fetchUrl}:`, error);
+    throw error;
+  }
 }
 
 function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
@@ -38,7 +53,12 @@ function getYouTubeEmbedUrl(youtubeUrl: string): string | null {
 }
 
 export default async function ExperimentDetailPage({ params }: { params: { id: string } }) {
-  const experiment = await getExperiment(params.id);
+  let experiment: IExperiment | null = null;
+  try {
+    experiment = await getExperiment(params.id);
+  } catch (error) {
+    // Error logged in getExperiment
+  }
 
   if (!experiment) {
     notFound();
