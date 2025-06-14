@@ -8,16 +8,26 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 async function getBlog(id: string): Promise<IBlog | null> {
-  let domain = process.env.NEXT_PUBLIC_DOMAIN;
+  let determinedDomain: string | undefined;
+
   if (process.env.VERCEL_URL) {
-    domain = `https://${process.env.VERCEL_URL}`;
-  } else if (!domain && process.env.NODE_ENV === 'development') {
-    domain = 'http://localhost:9002';
-  } else if (!domain) {
-    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set for getBlog. Fetching might fail.");
+    determinedDomain = `https://${process.env.VERCEL_URL}`;
+  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
+     determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
+      ? process.env.NEXT_PUBLIC_DOMAIN
+      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+  } else if (process.env.NODE_ENV === 'development') {
+    determinedDomain = 'http://localhost:9002';
   }
 
-  const fetchUrl = `${domain}/api/blogs/${id}`;
+  if (!determinedDomain) {
+    console.error(`Error: Could not determine domain for API call in getBlog (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
+    // For detail pages, it's usually better to throw an error or return null to trigger notFound()
+    // if the base URL can't be determined, as fetching will fail.
+    throw new Error("Configuration error: Cannot determine API domain.");
+  }
+
+  const fetchUrl = `${determinedDomain}/api/blogs/${id}`;
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) {
@@ -28,9 +38,7 @@ async function getBlog(id: string): Promise<IBlog | null> {
     return res.json();
   } catch (error) {
     console.error(`Fetch error in getBlog for URL ${fetchUrl}:`, error);
-    // Depending on how you want to handle this, you might re-throw, return null, or redirect.
-    // For now, let's align with existing behavior which might lead to notFound() if error occurs.
-    throw error; // Re-throw to be caught by Next.js error handling or a try-catch in the component
+    throw error; 
   }
 }
 
@@ -39,9 +47,8 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
   try {
     blog = await getBlog(params.id);
   } catch (error) {
-    // Error already logged in getBlog, notFound will be triggered if blog remains null
+    // Error already logged in getBlog
   }
-
 
   if (!blog) {
     notFound();

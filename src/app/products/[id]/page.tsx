@@ -11,16 +11,24 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 async function getProduct(id: string): Promise<IProduct | null> {
-  let domain = process.env.NEXT_PUBLIC_DOMAIN;
+  let determinedDomain: string | undefined;
+
   if (process.env.VERCEL_URL) {
-    domain = `https://${process.env.VERCEL_URL}`;
-  } else if (!domain && process.env.NODE_ENV === 'development') {
-    domain = 'http://localhost:9002';
-  } else if (!domain) {
-    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set for getProduct. Fetching might fail.");
+    determinedDomain = `https://${process.env.VERCEL_URL}`;
+  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
+    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
+      ? process.env.NEXT_PUBLIC_DOMAIN
+      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+  } else if (process.env.NODE_ENV === 'development') {
+    determinedDomain = 'http://localhost:9002';
   }
   
-  const fetchUrl = `${domain}/api/products/${id}`;
+  if (!determinedDomain) {
+    console.error(`Error: Could not determine domain for API call in getProduct (id: ${id}). Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.`);
+    throw new Error("Configuration error: Cannot determine API domain.");
+  }
+  
+  const fetchUrl = `${determinedDomain}/api/products/${id}`;
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) {

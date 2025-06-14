@@ -9,28 +9,30 @@ import { ExternalLink } from "lucide-react";
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
 async function getFeaturedProducts(): Promise<ProductSummary[]> {
-  let domain = process.env.NEXT_PUBLIC_DOMAIN;
-  // For Vercel deployments, VERCEL_URL is automatically set for preview/production.
-  // For local development, it falls back to NEXT_PUBLIC_DOMAIN or localhost.
+  let determinedDomain: string | undefined;
+
   if (process.env.VERCEL_URL) {
-    domain = `https://${process.env.VERCEL_URL}`;
-  } else if (!domain && process.env.NODE_ENV === 'development') {
-    domain = 'http://localhost:9002'; // Default for local dev if NEXT_PUBLIC_DOMAIN is not set
-  } else if (!domain) {
-    // Fallback for other environments or if NEXT_PUBLIC_DOMAIN is crucial and missing
-    console.warn("Warning: NEXT_PUBLIC_DOMAIN environment variable is not set. Fetching might fail.");
-    // Attempt with a relative path, though this is less reliable for server components in some setups.
-    // Or handle error / return empty. For now, let's log and proceed with undefined domain for API call.
+    determinedDomain = `https://${process.env.VERCEL_URL}`;
+  } else if (process.env.NEXT_PUBLIC_DOMAIN) {
+    determinedDomain = process.env.NEXT_PUBLIC_DOMAIN.startsWith('http')
+      ? process.env.NEXT_PUBLIC_DOMAIN
+      : `https://${process.env.NEXT_PUBLIC_DOMAIN}`;
+  } else if (process.env.NODE_ENV === 'development') {
+    determinedDomain = 'http://localhost:9002';
   }
 
+  if (!determinedDomain) {
+    console.error("Error: Could not determine domain for API call in getFeaturedProducts. Ensure VERCEL_URL or NEXT_PUBLIC_DOMAIN is set, or NODE_ENV is 'development' for local fallback.");
+    return [];
+  }
 
-  const fetchUrl = `${domain}/api/products/list?status=featured&limit=4`;
+  const fetchUrl = `${determinedDomain}/api/products/list?status=featured&limit=4`;
 
   try {
     const res = await fetch(fetchUrl, { cache: 'no-store' });
     if (!res.ok) {
       console.error(`Failed to fetch featured products: ${res.statusText} (status: ${res.status}) from ${fetchUrl}`);
-      return []; // Return empty array on error
+      return [];
     }
     const data = await res.json();
     return data.products || [];
