@@ -26,40 +26,49 @@ async function getExperiment(id: string): Promise<IExperiment | null> {
     determinedDomain = 'http://localhost:9002'; // Your dev port
     console.log(`[getExperiment] Using development localhost domain: ${determinedDomain}`);
   } else {
-    console.warn('[getExperiment] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode.');
-    return null;
+    console.warn('[getExperiment] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode. Throwing error.');
+    throw new Error('Server configuration error: API domain could not be determined.');
   }
 
   const fetchUrl = `${determinedDomain}/api/experiments/${id}`;
   console.log(`[getExperiment] Attempting to fetch from absolute URL: ${fetchUrl}`);
 
+  let res: Response;
   try {
-    const res = await fetch(fetchUrl, { cache: 'no-store' });
-    console.log(`[getExperiment] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+    res = await fetch(fetchUrl, { cache: 'no-store' });
+  } catch (fetchError) {
+    console.error(`[getExperiment] Network fetch error for URL ${fetchUrl}:`, fetchError);
+    throw new Error(`Network error fetching experiment: ${(fetchError as Error).message}`);
+  }
 
-    if (!res.ok) {
-      const responseText = await res.text().catch(() => "Could not read response body");
-      console.error(`[getExperiment] Failed to fetch experiment. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
-      if (res.status === 404) {
-         console.log(`[getExperiment] API returned 404 for experiment ID ${id}.`);
-      }
-      return null;
-    }
+  console.log(`[getExperiment] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+
+  if (res.status === 404) {
+    console.log(`[getExperiment] API returned 404 for experiment ID ${id}. Resource not found.`);
+    return null; // Explicitly not found
+  }
+
+  if (!res.ok) {
+    const responseText = await res.text().catch(() => "Could not read error response body");
+    console.error(`[getExperiment] API error. Status: ${res.status}, URL: ${fetchUrl}, Response: ${responseText.substring(0, 500)}...`);
+    throw new Error(`API error fetching experiment: ${res.status} ${res.statusText}.`);
+  }
     
+  try {
+    const data = await res.json();
+    console.log(`[getExperiment] Successfully fetched experiment data for ID ${id}. Title: ${data.title}`);
+    return data;
+  } catch (jsonError) {
+    console.error(`[getExperiment] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
+    let responseTextForJsonError = "Could not re-read response body after JSON parse error";
     try {
-      const data = await res.json();
-      console.log(`[getExperiment] Successfully fetched experiment data for ID ${id}. Title: ${data.title}`);
-      return data;
-    } catch (jsonError) {
-      console.error(`[getExperiment] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-      const responseTextForJsonError = await res.text().catch(() => "Could not read response body after JSON parse error");
-      console.error(`[getExperiment] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
-      return null; 
+        const textResponse = await res.clone().text();
+        responseTextForJsonError = textResponse;
+    } catch (textReadError) {
+        console.error(`[getExperiment] Error trying to read response text after JSON parse failure:`, textReadError);
     }
-
-  } catch (error) {
-     console.error(`[getExperiment] Catch block: Fetch error for URL ${fetchUrl}:`, error);
-     return null;
+    console.error(`[getExperiment] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
+    throw new Error(`Error parsing experiment data: ${(jsonError as Error).message}`);
   }
 }
 
@@ -88,10 +97,11 @@ export default async function ExperimentDetailPage({ params }: { params: { id: s
     experiment = await getExperiment(params.id);
   } catch (error) {
     console.error(`[ExperimentDetailPage] Error caught while calling getExperiment for ID ${params.id}:`, error);
+    throw error;
   }
 
   if (!experiment) {
-    console.log(`[ExperimentDetailPage] Experiment data not found for ID ${params.id}, calling notFound().`);
+    console.log(`[ExperimentDetailPage] Experiment data not found for ID ${params.id} (API returned 404), calling notFound().`);
     notFound();
   }
 

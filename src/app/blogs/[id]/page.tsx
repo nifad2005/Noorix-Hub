@@ -24,39 +24,51 @@ async function getBlog(id: string): Promise<IBlog | null> {
     determinedDomain = 'http://localhost:9002'; // Your dev port
     console.log(`[getBlog] Using development localhost domain: ${determinedDomain}`);
   } else {
-    console.warn('[getBlog] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode.');
-    return null; 
+    console.warn('[getBlog] Warning: Could not determine API domain. VERCEL_URL and NEXT_PUBLIC_DOMAIN are not set, and not in development mode. Throwing error.');
+    throw new Error('Server configuration error: API domain could not be determined.');
   }
 
   const fetchUrl = `${determinedDomain}/api/blogs/${id}`;
   console.log(`[getBlog] Attempting to fetch from absolute URL: ${fetchUrl}`);
 
+  let res: Response;
   try {
-    const res = await fetch(fetchUrl, { cache: 'no-store' });
-    console.log(`[getBlog] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
+    res = await fetch(fetchUrl, { cache: 'no-store' });
+  } catch (fetchError) {
+    console.error(`[getBlog] Network fetch error for URL ${fetchUrl}:`, fetchError);
+    throw new Error(`Network error fetching blog post: ${(fetchError as Error).message}`);
+  }
+  
+  console.log(`[getBlog] Fetch response status: ${res.status} for URL: ${fetchUrl}`);
 
-    if (!res.ok) {
-      const responseText = await res.text().catch(() => "Could not read response body");
-      console.error(`[getBlog] Failed to fetch blog. Status: ${res.status}, StatusText: ${res.statusText}, URL: ${fetchUrl}, Response: ${responseText}`);
-      if (res.status === 404) {
-        console.log(`[getBlog] API returned 404 for blog ID ${id}.`);
-      }
-      return null;
-    }
+  if (res.status === 404) {
+    console.log(`[getBlog] API returned 404 for blog ID ${id}. Resource not found.`);
+    return null; // Explicitly not found
+  }
 
+  if (!res.ok) {
+    const responseText = await res.text().catch(() => "Could not read error response body");
+    console.error(`[getBlog] API error. Status: ${res.status}, URL: ${fetchUrl}, Response: ${responseText.substring(0, 500)}...`);
+    throw new Error(`API error fetching blog post: ${res.status} ${res.statusText}.`);
+  }
+
+  try {
+    const data = await res.json();
+    console.log(`[getBlog] Successfully fetched blog data for ID ${id}. Title: ${data.title}`);
+    return data;
+  } catch (jsonError) {
+    console.error(`[getBlog] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
+    // Attempt to get response text if JSON parsing fails, for better debugging
+    let responseTextForJsonError = "Could not re-read response body after JSON parse error";
     try {
-      const data = await res.json();
-      console.log(`[getBlog] Successfully fetched blog data for ID ${id}. Title: ${data.title}`);
-      return data;
-    } catch (jsonError) {
-      console.error(`[getBlog] Failed to parse JSON response for ID ${id}. URL: ${fetchUrl}, Error:`, jsonError);
-      const responseTextForJsonError = await res.text().catch(() => "Could not read response body after JSON parse error"); // Re-read as text
-      console.error(`[getBlog] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
-      return null; 
+        // Re-clone the response to read its text body, as the original body might have been consumed
+        const textResponse = await res.clone().text();
+        responseTextForJsonError = textResponse;
+    } catch (textReadError) {
+        console.error(`[getBlog] Error trying to read response text after JSON parse failure:`, textReadError);
     }
-  } catch (error) {
-    console.error(`[getBlog] Catch block: Fetch error for URL ${fetchUrl}:`, error);
-    return null;
+    console.error(`[getBlog] Response text that caused JSON error: ${responseTextForJsonError.substring(0, 500)}...`);
+    throw new Error(`Error parsing blog post data: ${(jsonError as Error).message}`);
   }
 }
 
@@ -67,10 +79,14 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
     blog = await getBlog(params.id);
   } catch (error) {
     console.error(`[BlogDetailPage] Error caught while calling getBlog for ID ${params.id}:`, error);
+    // If getBlog throws an error, Next.js will catch it and render the nearest error.js
+    // or its default error page. We re-throw it to ensure this happens.
+    throw error;
   }
 
   if (!blog) {
-    console.log(`[BlogDetailPage] Blog data not found for ID ${params.id}, calling notFound().`);
+    // This will only be reached if getBlog returned null (API sent 404)
+    console.log(`[BlogDetailPage] Blog data not found for ID ${params.id} (API returned 404), calling notFound().`);
     notFound();
   }
 
