@@ -17,16 +17,35 @@ export function PageWrapper({ children }: PageWrapperProps) {
         {children}
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground">
-        A product by{" "}
-        <Link
-          href="https://noorix.vercel.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline font-medium"
-        >
-          NOORIX
-        </Link>
-        . © {new Date().getFullYear()} Noorix Hub. All rights reserved.
+        <div className="space-y-1">
+          <p>
+            A product by{" "}
+            <Link
+              href="https://noorix.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline font-medium"
+            >
+              NOORIX
+            </Link>
+            . © {new Date().getFullYear()} Noorix Hub. All rights reserved.
+          </p>
+          <div className="space-x-3">
+            <Link
+              href="#" // Replace with actual link later
+              className="hover:text-primary hover:underline"
+            >
+              Terms of Service
+            </Link>
+            <span>&bull;</span>
+            <Link
+              href="#" // Replace with actual link later
+              className="hover:text-primary hover:underline"
+            >
+              Privacy Policy
+            </Link>
+          </div>
+        </div>
       </footer>
     </div>
   );
