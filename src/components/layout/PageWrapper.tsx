@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { Navbar } from "./Navbar";
+import Link from "next/link"; // Import Link
 
 interface PageWrapperProps {
   children: ReactNode;
@@ -16,7 +17,16 @@ export function PageWrapper({ children }: PageWrapperProps) {
         {children}
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Noorix Hub. All rights reserved.
+        A product by{" "}
+        <Link
+          href="https://noorix.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline font-medium"
+        >
+          NOORIX
+        </Link>
+        . © {new Date().getFullYear()} Noorix Hub. All rights reserved.
       </footer>
     </div>
   );
