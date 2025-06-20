@@ -101,59 +101,62 @@ export function Navbar() {
           {/* Desktop Auth Section */}
           <div className="hidden md:flex items-center space-x-2">
             {loading ? (
-              <div className="w-20 h-8 bg-muted rounded animate-pulse"></div>
+              <div className="w-28 h-8 bg-muted rounded animate-pulse"></div> // Adjusted width for potential role text
             ) : isAuthenticated && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.name || "User"} />
-                      <AvatarFallback>{getInitials(user.name || undefined)}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {user.name}
-                      </p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email}
-                      </p>
-                      {(user.role === ROLES.ROOT || user.role === ROLES.ADMIN) && (
-                        <p className="text-xs leading-none text-primary font-semibold mt-1 capitalize">
-                           {user.role.toLowerCase()}
+              <div className="flex items-center space-x-2"> {/* Container for role and dropdown */}
+                {(user.role === ROLES.ROOT || user.role === ROLES.ADMIN) && (
+                  <span className="text-xs text-primary font-medium uppercase">
+                    {user.role}
+                  </span>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                      <Avatar className="h-9 w-9">
+                        <AvatarImage src={user.avatarUrl || undefined} alt={user.name || "User"} />
+                        <AvatarFallback>{getInitials(user.name || undefined)}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.name}
                         </p>
-                      )}
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile/my-feedback">
-                      <MessageSquareHeart className="mr-2 h-4 w-4" />
-                      My Feedback
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                        {/* Role removed from here */}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile">
+                        <User className="mr-2 h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/profile/my-feedback">
+                        <MessageSquareHeart className="mr-2 h-4 w-4" />
+                        My Feedback
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Dashboard
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             ) : (
               <Link href="/login">
                 <Button asChild><span>Login</span></Button>
@@ -181,11 +184,7 @@ export function Navbar() {
                         <p className="text-xs leading-none text-muted-foreground">
                           {user.email}
                         </p>
-                        {(user.role === ROLES.ROOT || user.role === ROLES.ADMIN) && (
-                          <p className="text-xs leading-none text-primary font-semibold mt-1 capitalize">
-                            {user.role.toLowerCase()}
-                          </p>
-                        )}
+                        {/* Role removed from here */}
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
@@ -239,3 +238,4 @@ export function Navbar() {
     </nav>
   );
 }
+
