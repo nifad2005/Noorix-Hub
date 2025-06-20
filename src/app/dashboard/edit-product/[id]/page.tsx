@@ -25,8 +25,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { IProduct, ProductStatus } from "@/models/Product";
 import { Loader2 } from "lucide-react";
+import { ROLES } from "@/config/roles";
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 const allowedProductStatuses: [ProductStatus, ...ProductStatus[]] = ["beta", "new released", "featured", "experimental"];
 
@@ -37,7 +37,7 @@ const productFormSchema = z.object({
   youtubeVideoLink: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
   category: z.enum(allowedCategories, { required_error: "Please select a category." }),
   status: z.enum(allowedProductStatuses, { required_error: "Please select a status."}),
-  tags: z.string().max(100).optional().or(z.literal('')), // Optional, can be empty
+  tags: z.string().max(100).optional().or(z.literal('')), 
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -51,7 +51,6 @@ export default function EditProductPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [productData, setProductData] = useState<IProduct | null>(null);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -66,8 +65,10 @@ export default function EditProductPage() {
     },
   });
 
+  const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   useEffect(() => {
-    if (!authLoading && user?.email !== ADMIN_EMAIL) {
+    if (!authLoading && !canManageContent) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to edit products.",
@@ -75,10 +76,10 @@ export default function EditProductPage() {
       });
       router.push("/dashboard");
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, canManageContent]);
 
   useEffect(() => {
-    if (productId && user?.email === ADMIN_EMAIL) {
+    if (productId && canManageContent) {
       const fetchProduct = async () => {
         setIsLoadingData(true);
         try {
@@ -87,7 +88,6 @@ export default function EditProductPage() {
             throw new Error("Failed to fetch product data");
           }
           const data: IProduct = await response.json();
-          setProductData(data);
           form.reset({
             title: data.title,
             description: data.description,
@@ -104,14 +104,16 @@ export default function EditProductPage() {
             description: "Could not load product data. Please try again.",
             variant: "destructive",
           });
-          router.push("/dashboard"); // Or to a products management page
+          router.push("/dashboard/create-product"); 
         } finally {
           setIsLoadingData(false);
         }
       };
       fetchProduct();
+    } else if (!authLoading && !canManageContent) {
+        setIsLoadingData(false);
     }
-  }, [productId, user, form, router, toast]);
+  }, [productId, user, form, router, toast, canManageContent, authLoading]);
 
   async function onSubmit(data: ProductFormValues) {
     setIsSubmitting(true);
@@ -134,7 +136,7 @@ export default function EditProductPage() {
         title: "Product Updated!",
         description: "The product has been updated successfully.",
       });
-      router.push(`/products/${productId}`); // Navigate to the updated product's detail page
+      router.push(`/products/${productId}`); 
     } catch (error) {
       console.error("Failed to update product:", error);
       toast({
@@ -147,7 +149,7 @@ export default function EditProductPage() {
     }
   }
   
-  if (authLoading || isLoadingData || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || isLoadingData || (!authLoading && !canManageContent)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

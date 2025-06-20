@@ -23,8 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { ROLES } from "@/config/roles";
+import { Loader2 } from "lucide-react";
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 
 const experimentFormSchema = z.object({
@@ -55,9 +56,11 @@ export default function CreateExperimentPage() {
       tags: "",
     },
   });
+  
+  const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   useEffect(() => {
-    if (!authLoading && user?.email !== ADMIN_EMAIL) {
+    if (!authLoading && !canManageContent) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to create experiments.",
@@ -65,7 +68,7 @@ export default function CreateExperimentPage() {
       });
       router.push("/dashboard");
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, canManageContent]);
 
   async function onSubmit(data: ExperimentFormValues) {
     setIsSubmitting(true);
@@ -83,7 +86,7 @@ export default function CreateExperimentPage() {
         throw new Error(errorData.message || 'Failed to create experiment');
       }
 
-      const result = await response.json();
+      await response.json();
       toast({
         title: "Experiment Created!",
         description: "Your new experiment has been saved successfully.",
@@ -101,11 +104,11 @@ export default function CreateExperimentPage() {
     }
   }
 
-  if (authLoading || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || (!authLoading && !canManageContent)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       </PageWrapper>
     );

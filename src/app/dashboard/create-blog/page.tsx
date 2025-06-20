@@ -23,8 +23,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
+import { ROLES } from "@/config/roles";
+import { Loader2 } from "lucide-react";
 
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 
@@ -44,20 +44,21 @@ export default function CreateBlogPage() {
   const router = useRouter();
   const [isSubmittingForm, setIsSubmittingForm] = useState(false);
 
-
   const form = useForm<BlogFormValues>({
     resolver: zodResolver(blogFormSchema),
     defaultValues: {
       title: "",
       content: "",
       featuredImage: "",
-      category: undefined, // Keep undefined for placeholder to work
+      category: undefined, 
       tags: "",
     },
   });
 
+  const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   useEffect(() => {
-    if (!authLoading && user?.email !== ADMIN_EMAIL) {
+    if (!authLoading && !canManageContent) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to create blog posts.",
@@ -65,7 +66,7 @@ export default function CreateBlogPage() {
       });
       router.push("/dashboard");
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, canManageContent]);
 
 
   async function onSubmit(data: BlogFormValues) {
@@ -84,7 +85,7 @@ export default function CreateBlogPage() {
         throw new Error(errorData.message || 'Failed to create blog post');
       }
 
-      const result = await response.json();
+      await response.json();
       toast({
         title: "Blog Post Published!",
         description: "Your new blog post has been saved successfully.",
@@ -102,11 +103,11 @@ export default function CreateBlogPage() {
     }
   }
 
-  if (authLoading || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || (!authLoading && !canManageContent)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-primary"></div>
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
       </PageWrapper>
     );

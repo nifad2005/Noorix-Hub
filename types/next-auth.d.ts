@@ -1,4 +1,5 @@
 
+import type { UserRole } from '@/config/roles'; // New import
 import 'next-auth';
 import type { DefaultSession, DefaultUser } from 'next-auth';
 
@@ -9,6 +10,7 @@ declare module 'next-auth' {
   interface Session {
     user?: {
       id?: string | null; // Add your custom property id
+      role?: UserRole; // Add role
     } & DefaultSession['user']; // Keep the default properties
   }
 
@@ -17,18 +19,15 @@ declare module 'next-auth' {
    * or the second parameter of the `session` callback, when using a database.
    */
   interface User extends DefaultUser {
-    // DefaultUser already includes id, name, email, image.
-    // You can add other custom properties here if your adapter/database stores them directly on the user object.
-    // For example, if you add a role to your user model in MongoDB:
-    // role?: string;
+    role?: UserRole; // Add role (this will be manually set in the DB for ADMINs)
   }
 }
 
 declare module 'next-auth/jwt' {
   /** Returned by the `jwt` callback and `getToken`, when using JWT sessions */
   interface JWT {
-    /** OpenID ID Token */
     id?: string; // Corresponds to token.sub which will be user's DB id
+    role?: UserRole; // Add role
     // accessToken?: string; // Example if you store accessToken
   }
 }

@@ -6,9 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, FlaskConical, Edit, MessageSquareMore } from "lucide-react"; // Added MessageSquareMore
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
+import { FilePlus2, FlaskConical, Edit, MessageSquareMore, Users } from "lucide-react";
+import { ROLES } from "@/config/roles";
 
 export default function DashboardPage() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -37,7 +36,8 @@ export default function DashboardPage() {
     );
   }
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isRoot = user?.role === ROLES.ROOT;
+  const isAdmin = user?.role === ROLES.ADMIN;
 
   return (
     <PageWrapper>
@@ -49,7 +49,7 @@ export default function DashboardPage() {
           </CardHeader>
         </Card>
 
-        {isAdmin ? (
+        {(isRoot || isAdmin) && (
           <>
             <h2 className="text-2xl font-semibold mt-8 mb-4">Content Creation</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -101,8 +101,14 @@ export default function DashboardPage() {
                 </Card>
               </Link>
             </div>
+          </>
+        )}
+
+        {(isRoot || isAdmin) && (
             <h2 className="text-2xl font-semibold mt-10 mb-4">Management</h2>
-             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        )}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {(isRoot || isAdmin) && (
                 <Link href="/dashboard/feedback-management" passHref>
                     <Card className="hover:shadow-xl transition-shadow cursor-pointer">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -118,9 +124,27 @@ export default function DashboardPage() {
                     </CardContent>
                     </Card>
                 </Link>
-             </div>
-          </>
-        ) : (
+            )}
+            {isRoot && (
+                 <Link href="/dashboard/manage-users" passHref>
+                    <Card className="hover:shadow-xl transition-shadow cursor-pointer">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-lg font-medium">
+                        Manage Users
+                        </CardTitle>
+                        <Users className="h-6 w-6 text-primary" />
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground">
+                        View users and manage their roles.
+                        </p>
+                    </CardContent>
+                    </Card>
+                </Link>
+            )}
+        </div>
+
+        {user?.role === ROLES.USER && (
           <Card>
             <CardHeader>
               <CardTitle>User Dashboard</CardTitle>

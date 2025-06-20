@@ -13,8 +13,7 @@ import { Button } from "@/components/ui/button";
 import type { IFeedback } from "@/models/Feedback";
 import { Loader2, AlertCircle, Inbox, Eye } from "lucide-react";
 import { format } from "date-fns";
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
+import { ROLES } from "@/config/roles";
 
 export default function FeedbackManagementPage() {
   const { user, loading: authLoading } = useAuth();
@@ -23,15 +22,17 @@ export default function FeedbackManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const canManageFeedback = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   useEffect(() => {
     if (!authLoading) {
-      if (user?.email !== ADMIN_EMAIL) {
-        router.push("/dashboard"); // Redirect if not admin
+      if (!canManageFeedback) {
+        router.push("/dashboard"); 
       } else {
         fetchFeedback();
       }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, canManageFeedback]);
 
   const fetchFeedback = async () => {
     setIsLoading(true);
@@ -52,7 +53,7 @@ export default function FeedbackManagementPage() {
     }
   };
 
-  if (authLoading || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || (!authLoading && !canManageFeedback)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

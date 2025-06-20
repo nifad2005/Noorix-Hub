@@ -22,13 +22,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { ROLES } from '@/config/roles';
 
 interface BlogCardProps {
   blog: Partial<IBlog> & { _id: string; snippet?: string; };
   onBlogDeleted?: (blogId: string) => void;
 }
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
 export function BlogCard({ blog, onBlogDeleted }: BlogCardProps) {
   const { user } = useAuth();
@@ -36,7 +35,7 @@ export function BlogCard({ blog, onBlogDeleted }: BlogCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const canManage = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   const formattedDate = blog.createdAt ? new Date(blog.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -78,7 +77,7 @@ export function BlogCard({ blog, onBlogDeleted }: BlogCardProps) {
 
   return (
     <Card className="h-full flex flex-col md:flex-row overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out group relative">
-      {isAdmin && (
+      {canManage && (
         <div className="absolute top-2 right-2 z-10 flex space-x-1 bg-card p-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Link href={`/dashboard/edit-blog/${blog._id}`} passHref>
             <Button variant="outline" size="icon" className="h-7 w-7">

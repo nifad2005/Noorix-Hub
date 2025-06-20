@@ -5,9 +5,9 @@ import Blog from '@/models/Blog';
 import mongoose from 'mongoose';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { ROLES } from '@/config/roles';
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
-
+// GET is public, no auth needed to read a blog post
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
   console.log(`[API GET /api/blogs/:id] Received request for ID: ${id}`);
@@ -18,18 +18,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
   }
 
   try {
-    console.log(`[API GET /api/blogs/:id] Attempting to connect to DB for ID: ${id}`);
+    // This logic should remain as it's for the public-facing detail page.
     await connectDB();
-    console.log(`[API GET /api/blogs/:id] DB connected. Searching for blog with ID: ${id}`);
-    const blog = await Blog.findById(id);
+    const blogPost = await Blog.findById(id).lean(); // Using .lean() for direct DB call in page.tsx
 
-    if (!blog) {
-      console.log(`[API GET /api/blogs/:id] Blog post not found in DB for ID: ${id}. Returning 404.`);
+    if (!blogPost) {
       return NextResponse.json({ message: 'Blog post not found' }, { status: 404 });
     }
-
-    console.log(`[API GET /api/blogs/:id] Blog post found for ID: ${id}. Title: ${blog.title}`);
-    return NextResponse.json(blog);
+    return NextResponse.json(blogPost);
   } catch (error) {
     console.error(`[API GET /api/blogs/:id] Error fetching blog post for ID: ${id}. Error:`, error);
     if (error instanceof Error) {
@@ -41,8 +37,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;
@@ -83,8 +79,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;

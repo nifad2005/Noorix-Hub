@@ -5,9 +5,9 @@ import Product from '@/models/Product';
 import mongoose from 'mongoose';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { ROLES } from '@/config/roles';
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
-
+// GET is public
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const { id } = params;
 
@@ -17,7 +17,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
   try {
     await connectDB();
-    const product = await Product.findById(id);
+    const product = await Product.findById(id).lean();
 
     if (!product) {
       return NextResponse.json({ message: 'Product not found' }, { status: 404 });
@@ -35,8 +35,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;
@@ -77,8 +77,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;

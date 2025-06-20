@@ -25,8 +25,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { IExperiment } from "@/models/Experiment";
 import { Loader2 } from "lucide-react";
+import { ROLES } from "@/config/roles";
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 
 const experimentFormSchema = z.object({
@@ -61,9 +61,11 @@ export default function EditExperimentPage() {
       tags: "",
     },
   });
+  
+  const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   useEffect(() => {
-    if (!authLoading && user?.email !== ADMIN_EMAIL) {
+    if (!authLoading && !canManageContent) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to edit experiments.",
@@ -71,10 +73,10 @@ export default function EditExperimentPage() {
       });
       router.push("/dashboard");
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, canManageContent]);
 
   useEffect(() => {
-    if (experimentId && user?.email === ADMIN_EMAIL) {
+    if (experimentId && canManageContent) {
       const fetchExperiment = async () => {
         setIsLoadingData(true);
         try {
@@ -98,14 +100,16 @@ export default function EditExperimentPage() {
             description: "Could not load experiment data. Please try again.",
             variant: "destructive",
           });
-          router.push("/dashboard");
+          router.push("/dashboard/create-experiment");
         } finally {
           setIsLoadingData(false);
         }
       };
       fetchExperiment();
+    } else if (!authLoading && !canManageContent) {
+        setIsLoadingData(false);
     }
-  }, [experimentId, user, form, router, toast]);
+  }, [experimentId, user, form, router, toast, canManageContent, authLoading]);
 
   async function onSubmit(data: ExperimentFormValues) {
     setIsSubmitting(true);
@@ -141,7 +145,7 @@ export default function EditExperimentPage() {
     }
   }
 
-  if (authLoading || isLoadingData || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || isLoadingData || (!authLoading && !canManageContent)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

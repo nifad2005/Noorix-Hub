@@ -19,8 +19,8 @@ import type { IFeedback, FeedbackStatus } from "@/models/Feedback";
 import { Loader2, AlertCircle, ArrowLeft, Send } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { ROLES } from "@/config/roles";
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedFeedbackStatuses: [FeedbackStatus, ...FeedbackStatus[]] = ["New", "In Progress", "Resolved", "Closed"];
 
 const responseFormSchema = z.object({
@@ -49,16 +49,18 @@ export default function FeedbackDetailPageAdmin() {
     },
   });
 
+  const canManageFeedback = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   useEffect(() => {
     if (!authLoading) {
-      if (user?.email !== ADMIN_EMAIL) {
+      if (!canManageFeedback) {
         router.push("/dashboard");
       } else if (feedbackId) {
         fetchFeedbackItem();
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authLoading, router, feedbackId]);
+  }, [user, authLoading, router, feedbackId, canManageFeedback]);
 
   const fetchFeedbackItem = async () => {
     setIsLoadingData(true);
@@ -112,7 +114,7 @@ export default function FeedbackDetailPageAdmin() {
     }
   }
   
-  if (authLoading || isLoadingData || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || isLoadingData || (!authLoading && !canManageFeedback)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

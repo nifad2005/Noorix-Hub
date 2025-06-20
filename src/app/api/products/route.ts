@@ -5,14 +5,14 @@ import Product from '@/models/Product';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import mongoose from 'mongoose';
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
+import { ROLES } from '@/config/roles';
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || !session.user.id || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || !session.user.id || 
+      (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   try {
@@ -50,4 +50,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Error creating product', error: 'An unknown error occurred' }, { status: 500 });
   }
 }
-

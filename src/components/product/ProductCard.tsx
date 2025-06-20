@@ -20,15 +20,14 @@ import { CalendarDays, Tag, Package, ShieldCheck, Pencil, Trash2 } from 'lucide-
 import type { IProduct } from '@/models/Product';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation'; // For potential refresh or redirect
+import { useRouter } from 'next/navigation'; 
 import { useState } from 'react';
+import { ROLES } from '@/config/roles';
 
 interface ProductCardProps {
   product: Partial<IProduct> & { _id: string; snippet?: string; };
   onProductDeleted?: (productId: string) => void;
 }
-
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 
 export function ProductCard({ product, onProductDeleted }: ProductCardProps) {
   const { user } = useAuth();
@@ -36,7 +35,7 @@ export function ProductCard({ product, onProductDeleted }: ProductCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const canManage = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   const formattedDate = product.createdAt ? new Date(product.createdAt).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -62,7 +61,7 @@ export function ProductCard({ product, onProductDeleted }: ProductCardProps) {
       if (onProductDeleted) {
         onProductDeleted(product._id);
       } else {
-        router.refresh(); // Fallback to refresh the page if no callback provided
+        router.refresh(); 
       }
     } catch (error) {
       console.error("Error deleting product:", error);
@@ -78,7 +77,7 @@ export function ProductCard({ product, onProductDeleted }: ProductCardProps) {
 
   return (
     <Card className="h-full flex flex-col md:flex-row overflow-hidden hover:shadow-xl transition-shadow duration-300 ease-in-out group relative">
-      {isAdmin && (
+      {canManage && (
         <div className="absolute top-2 right-2 z-10 flex space-x-1 bg-card p-1 rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Link href={`/dashboard/edit-product/${product._id}`} passHref>
             <Button variant="outline" size="icon" className="h-7 w-7">

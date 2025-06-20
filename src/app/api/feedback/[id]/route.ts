@@ -5,14 +5,13 @@ import Feedback, { type IFeedback } from '@/models/Feedback';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import mongoose from 'mongoose';
+import { ROLES } from '@/config/roles';
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
-
-// GET a single feedback item by ID (for admin)
+// GET a single feedback item by ID (for admin/root)
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;
@@ -39,11 +38,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
 }
 
 
-// PUT (update) a feedback item (for admin to respond and change status)
+// PUT (update) a feedback item (for admin/root to respond and change status)
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;
@@ -60,7 +59,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         return NextResponse.json({ message: 'Invalid status value.' }, { status: 400 });
     }
 
-    const updateData: Partial<Pick<IFeedback, 'adminResponse' | 'status'>> = {};
+    const updateData: Partial<Pick<IFeedback, 'adminResponse' | 'status' | 'updatedAt'>> = {};
     if (adminResponse !== undefined) updateData.adminResponse = adminResponse.trim();
     if (status) updateData.status = status;
     
@@ -93,11 +92,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-// DELETE a feedback item (for admin)
+// DELETE a feedback item (for admin/root)
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || !session.user || session.user.email !== ADMIN_EMAIL) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user || (session.user.role !== ROLES.ROOT && session.user.role !== ROLES.ADMIN)) {
+    return NextResponse.json({ message: 'Unauthorized. Admin or Root access required.' }, { status: 401 });
   }
 
   const { id } = params;

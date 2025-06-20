@@ -25,8 +25,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { IBlog } from "@/models/Blog";
 import { Loader2 } from "lucide-react";
+import { ROLES } from "@/config/roles";
 
-const ADMIN_EMAIL = "nifaduzzaman2005@gmail.com";
 const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
 
 const blogFormSchema = z.object({
@@ -60,8 +60,10 @@ export default function EditBlogPage() {
     },
   });
 
+  const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   useEffect(() => {
-    if (!authLoading && user?.email !== ADMIN_EMAIL) {
+    if (!authLoading && !canManageContent) {
       toast({
         title: "Access Denied",
         description: "You don't have permission to edit blog posts.",
@@ -69,13 +71,14 @@ export default function EditBlogPage() {
       });
       router.push("/dashboard");
     }
-  }, [user, authLoading, router, toast]);
+  }, [user, authLoading, router, toast, canManageContent]);
 
   useEffect(() => {
-    if (blogId && user?.email === ADMIN_EMAIL) {
+    if (blogId && canManageContent) { // Check canManageContent before fetching
       const fetchBlog = async () => {
         setIsLoadingData(true);
         try {
+          // The API route for GET is public, so no specific auth needed here for fetching
           const response = await fetch(`/api/blogs/${blogId}`);
           if (!response.ok) {
             throw new Error("Failed to fetch blog post data");
@@ -95,14 +98,16 @@ export default function EditBlogPage() {
             description: "Could not load blog post data. Please try again.",
             variant: "destructive",
           });
-          router.push("/dashboard");
+          router.push("/dashboard/create-blog"); // Or a generic blog management page
         } finally {
           setIsLoadingData(false);
         }
       };
       fetchBlog();
+    } else if (!authLoading && !canManageContent) { // If not admin and not loading, stop loading data
+        setIsLoadingData(false);
     }
-  }, [blogId, user, form, router, toast]);
+  }, [blogId, user, form, router, toast, canManageContent, authLoading]);
 
   async function onSubmit(data: BlogFormValues) {
     setIsSubmitting(true);
@@ -138,7 +143,7 @@ export default function EditBlogPage() {
     }
   }
 
-  if (authLoading || isLoadingData || (!authLoading && user?.email !== ADMIN_EMAIL)) {
+  if (authLoading || isLoadingData || (!authLoading && !canManageContent)) {
     return (
       <PageWrapper>
         <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">

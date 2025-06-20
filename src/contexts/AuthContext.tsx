@@ -5,12 +5,14 @@ import type { ReactNode } from "react";
 import { createContext, useCallback } from "react";
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import type { Session } from "next-auth";
+import type { UserRole } from "@/config/roles"; // Import UserRole
 
 interface User {
-  id?: string | null; // Added id from the database session
+  id?: string | null;
   name?: string | null;
   email?: string | null;
   avatarUrl?: string | null;
+  role?: UserRole | null; // Add role to User interface
 }
 
 interface AuthContextType {
@@ -36,10 +38,11 @@ function AuthProviderContent({ children }: AuthProviderProps) {
 
   const user: User | null = session?.user
     ? {
-        id: session.user.id, // id is now available via augmented Session type
+        id: session.user.id,
         name: session.user.name,
         email: session.user.email,
-        avatarUrl: session.user.image, 
+        avatarUrl: session.user.image,
+        role: session.user.role, // Assign role from session
       }
     : null;
 
