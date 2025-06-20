@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { User, LogOut, LayoutDashboard, Menu, ChevronDown, LogIn, MessageSquareHeart, Mail } from "lucide-react";
+import { ROLES } from "@/config/roles"; // Import ROLES
 
 export function Navbar() {
   const { isAuthenticated, user, logout, loading } = useAuth();
@@ -120,6 +121,11 @@ export function Navbar() {
                       <p className="text-xs leading-none text-muted-foreground">
                         {user.email}
                       </p>
+                      {(user.role === ROLES.ROOT || user.role === ROLES.ADMIN) && (
+                        <p className="text-xs leading-none text-primary font-semibold mt-1 capitalize">
+                           {user.role.toLowerCase()}
+                        </p>
+                      )}
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
@@ -165,6 +171,26 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                {isAuthenticated && user ? (
+                  <>
+                    <DropdownMenuLabel className="font-normal px-2 py-1.5">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {user.name}
+                        </p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                        {(user.role === ROLES.ROOT || user.role === ROLES.ADMIN) && (
+                          <p className="text-xs leading-none text-primary font-semibold mt-1 capitalize">
+                            {user.role.toLowerCase()}
+                          </p>
+                        )}
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
                 {[...navLinks, ...moreLinks].map((link) => (
                   <DropdownMenuItem key={link.label} asChild>
                     <Link href={link.href} className="w-full flex justify-start">{link.label}</Link>
