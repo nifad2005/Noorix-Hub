@@ -80,9 +80,9 @@ export default async function ExperimentDetailPage({ params }: { params: { id: s
     <PageWrapper>
       <article className="max-w-3xl mx-auto">
         <Card className="shadow-xl overflow-hidden">
-          <CardHeader className="space-y-3 p-6">
+          <CardHeader className="space-y-3 p-4">
             <Badge variant="secondary" className="text-sm uppercase w-fit">{experiment.category}</Badge>
-            <CardTitle className="text-3xl md:text-4xl font-bold font-headline text-primary">
+            <CardTitle className="text-3xl font-bold font-headline text-primary">
               {experiment.title}
             </CardTitle>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -105,7 +105,7 @@ export default async function ExperimentDetailPage({ params }: { params: { id: s
             </div>
           )}
 
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-6">
             <div className="prose prose-lg max-w-none dark:prose-invert text-foreground text-base md:text-lg leading-relaxed">
               <p>{experiment.description}</p>
             </div>
@@ -123,7 +123,7 @@ export default async function ExperimentDetailPage({ params }: { params: { id: s
           </CardContent>
 
           {experiment.tags && experiment.tags.length > 0 && (
-            <CardFooter className="p-6 border-t">
+            <CardFooter className="p-4 border-t">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Tag className="mr-1 h-5 w-5 text-muted-foreground" />
                 {experiment.tags.map((tag) => (

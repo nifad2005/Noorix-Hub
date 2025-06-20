@@ -109,10 +109,10 @@ export default function AboutUsPage() {
 
       <div className="space-y-12">
         <header className="text-center py-8">
-          <h1 className="text-5xl font-bold tracking-tight font-headline text-primary">
+          <h1 className="text-3xl font-bold tracking-tight font-headline text-primary">
             {content.pageTitle}
           </h1>
-          <p className="mt-4 text-xl text-muted-foreground max-w-3xl mx-auto">
+          <p className="mt-4 text-xl font-semibold text-muted-foreground max-w-3xl mx-auto">
             {content.pageSubtitle}
           </p>
         </header>

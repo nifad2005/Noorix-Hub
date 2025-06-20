@@ -84,9 +84,9 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
               />
             </div>
           )}
-          <CardHeader className="space-y-3 p-6">
+          <CardHeader className="space-y-3 p-4">
             <Badge variant="secondary" className="text-sm uppercase w-fit">{blog.category}</Badge>
-            <CardTitle className="text-3xl md:text-4xl font-bold font-headline text-primary">
+            <CardTitle className="text-3xl font-bold font-headline text-primary">
               {blog.title}
             </CardTitle>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -95,7 +95,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
             </div>
           </CardHeader>
 
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div
               className="prose prose-lg max-w-none dark:prose-invert text-foreground text-base md:text-lg leading-relaxed whitespace-pre-wrap"
             >
@@ -104,7 +104,7 @@ export default async function BlogDetailPage({ params }: { params: { id: string 
           </CardContent>
 
           {blog.tags && blog.tags.length > 0 && (
-            <CardFooter className="p-6 border-t">
+            <CardFooter className="p-4 border-t">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Tag className="mr-1 h-5 w-5 text-muted-foreground" />
                 {blog.tags.map((tag) => (

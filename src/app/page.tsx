@@ -50,10 +50,10 @@ export default async function HomePage() {
     <PageWrapper>
       <div className="flex flex-col items-center justify-center text-center space-y-8 py-12">
         
-        <h1 className="text-5xl font-bold tracking-tight font-headline">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">
           Welcome to <span className="text-primary">Noorix Hub</span>
         </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl">
+        <p className="text-xl font-semibold text-muted-foreground max-w-2xl">
           Your central platform for innovative tools and experiments. Explore our featured products and dive into the world of X&I.
         </p>
         <div className="flex space-x-4">

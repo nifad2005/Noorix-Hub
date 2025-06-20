@@ -107,10 +107,10 @@ export default function BlogsPage() {
     <PageWrapper>
       <div className="space-y-8">
         <header className="text-center space-y-2 py-8">
-          <h1 className="text-4xl font-bold tracking-tight font-headline">
+          <h1 className="text-3xl font-bold tracking-tight font-headline">
             Our <span className="text-primary">Blog</span>
           </h1>
-          <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+          <p className="text-xl font-semibold text-muted-foreground max-w-xl mx-auto">
             Discover insights, tutorials, and updates on web development, machine learning, and AI.
           </p>
         </header>

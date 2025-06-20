@@ -81,7 +81,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
     <PageWrapper>
       <article className="max-w-3xl mx-auto">
         <Card className="shadow-xl overflow-hidden">
-          <CardHeader className="space-y-3 p-6">
+          <CardHeader className="space-y-3 p-4">
             <div className="flex flex-wrap gap-2 items-center">
               <Badge variant="secondary" className="text-sm uppercase">{product.category}</Badge>
               {product.status && (
@@ -91,7 +91,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
                 </Badge>
                 )}
             </div>
-            <CardTitle className="text-3xl md:text-4xl font-bold font-headline text-primary">
+            <CardTitle className="text-3xl font-bold font-headline text-primary">
               {product.title}
             </CardTitle>
             <div className="flex items-center text-sm text-muted-foreground">
@@ -114,7 +114,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
             </div>
           )}
 
-          <CardContent className="p-6 space-y-6">
+          <CardContent className="p-4 space-y-6">
             <div className="prose prose-lg max-w-none dark:prose-invert text-foreground text-base md:text-lg leading-relaxed">
               <p>{product.description}</p>
             </div>
@@ -132,7 +132,7 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           </CardContent>
 
           {product.tags && product.tags.length > 0 && (
-            <CardFooter className="p-6 border-t">
+            <CardFooter className="p-4 border-t">
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <Tag className="mr-1 h-5 w-5 text-muted-foreground" />
                 {product.tags.map((tag) => (
