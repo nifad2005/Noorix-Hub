@@ -1,11 +1,17 @@
 
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import type { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions, User as NextAuthUser } from "next-auth";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
-import clientPromise from "@/lib/mongoClient"; // Use the new MongoClient promise
+import clientPromise from "@/lib/mongoClient"; 
 import { ROLES, ROOT_EMAIL, type UserRole } from "@/config/roles";
-import type { User as DbUser } from "next-auth"; // Adapter's User type
+import { ObjectId } from 'mongodb'; // Import ObjectId
+
+// Define a more specific type for user documents in your DB
+interface AppUser extends NextAuthUser {
+  _id: ObjectId; // Ensure _id is ObjectId for querying
+  role?: UserRole;
+}
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
@@ -22,19 +28,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token.sub && session.user) {
-        session.user.id = token.sub;
-        // Determine role based on email for ROOT, or fetched role for others
+        session.user.id = token.sub; // token.sub is the user's ID from the JWT
+
         if (session.user.email === ROOT_EMAIL) {
           session.user.role = ROLES.ROOT;
         } else {
-          // Fetch user from DB to get their role if stored
-          // The 'role' field in JWT is not being set for now to always fetch fresh role from DB for ADMIN/USER
           try {
             const client = await clientPromise;
-            const dbUser = await client.db().collection<DbUser>('users').findOne({ _id: new client.db().bsonLib.ObjectId(token.sub) });
-            if (dbUser && (dbUser as any).role === ROLES.ADMIN) { // Check for manually set 'role' field
+            const db = client.db();
+            
+            // Use the AppUser type for fetching
+            // token.sub should be the string representation of the ObjectId
+            const userFromDb = await db.collection<AppUser>('users').findOne({ _id: new ObjectId(token.sub) });
+
+            if (userFromDb && userFromDb.role === ROLES.ADMIN) {
               session.user.role = ROLES.ADMIN;
             } else {
+              // If not ROOT (by email) and not ADMIN (from DB), then default to USER
+              // This also covers cases where userFromDb.role is ROLES.USER or undefined
               session.user.role = ROLES.USER;
             }
           } catch (error) {
@@ -45,16 +56,14 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
-    async jwt({ token, user, account }) {
-      // Initial sign in or when account is present
-      if (account && user) {
-        token.id = user.id; // Persist the user id from the database into the token
-        // The role can be added to the token here if desired,
-        // but for ROOT role being dynamic, session callback is more reliable.
-        // For ADMIN role, it would come from the user object if populated by adapter/DB.
-        // Since MongoDBAdapter might not directly populate custom fields like `role` onto `user` object here,
-        // we will primarily rely on the session callback to fetch and assign roles from DB.
+    async jwt({ token, user }) { 
+      // When a user signs in, the `user` object is available.
+      // We want to ensure the `token.sub` (subject, which NextAuth uses for user ID in JWT)
+      // is the actual database ID of the user.
+      if (user?.id) { 
+        token.sub = user.id; // user.id from the adapter is typically the string form of _id
       }
+      // The 'role' is not added to JWT here; it's fetched fresh in the session callback for accuracy.
       return token;
     },
   },
