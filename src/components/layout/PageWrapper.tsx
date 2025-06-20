@@ -32,14 +32,14 @@ export function PageWrapper({ children }: PageWrapperProps) {
           </p>
           <div className="space-x-3">
             <Link
-              href="#" // Replace with actual link later
+              href="/terms-of-service"
               className="hover:text-primary hover:underline"
             >
               Terms of Service
             </Link>
             <span>&bull;</span>
             <Link
-              href="#" // Replace with actual link later
+              href="/privacy-policy"
               className="hover:text-primary hover:underline"
             >
               Privacy Policy
