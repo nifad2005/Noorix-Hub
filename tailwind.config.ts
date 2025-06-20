@@ -18,9 +18,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace', 'monospace'], // Added fallback for code
+        sans: ['Inter', 'system-ui', 'sans-serif'], // Updated default sans-serif
+        code: ['monospace', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -53,6 +52,8 @@ export default {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
         },
+        success: 'hsl(var(--success))', // Added success color
+        warning: 'hsl(var(--warning))', // Added warning color
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -75,9 +76,11 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: 'var(--radius)', // This will be 0.5rem
+        md: 'calc(var(--radius) - 2px)', // 0.5rem - 2px
+        sm: 'calc(var(--radius) - 4px)', // 0.5rem - 4px
+        // For rounded-xl (0.75rem) and rounded-2xl (1rem) on specific components like buttons/cards,
+        // we'll need to apply those classes directly or adjust component styles later.
       },
       keyframes: {
         'accordion-down': {
