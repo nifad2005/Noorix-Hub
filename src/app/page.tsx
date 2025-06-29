@@ -7,6 +7,9 @@ import type { IProduct } from "@/models/Product";
 import connectDB from "@/lib/db"; // Import connectDB
 import ProductModel from "@/models/Product"; // Import Mongoose model
 import { ExternalLink, LayoutDashboard, BotMessageSquare } from "lucide-react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { ROLES } from "@/config/roles";
 
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
@@ -45,6 +48,9 @@ async function getFeaturedProducts(): Promise<ProductSummary[]> {
 
 export default async function HomePage() {
   const featuredProducts = await getFeaturedProducts();
+  const session = await getServerSession(authOptions);
+  const user = session?.user;
+  const isAdminOrRoot = user?.role === ROLES.ADMIN || user?.role === ROLES.ROOT;
 
   return (
     <PageWrapper>
@@ -69,12 +75,16 @@ export default async function HomePage() {
                Content Hub
              </Button>
           </Link>
-          <Link href="/products">
-            <Button size="lg" variant="outline">Explore Products</Button>
-          </Link>
-          <Link href="/about">
-             <Button size="lg" variant="outline">About Us</Button>
-          </Link>
+          {!isAdminOrRoot && (
+            <>
+              <Link href="/products">
+                <Button size="lg" variant="outline">Explore Products</Button>
+              </Link>
+              <Link href="/about">
+                <Button size="lg" variant="outline">About Us</Button>
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
