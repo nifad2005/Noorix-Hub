@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, FlaskConical, Edit, MessageSquareMore, Users, Wand2 } from "lucide-react";
+import { FilePlus2, FlaskConical, Edit, MessageSquareMore, Users, Link as LinkIcon } from "lucide-react";
 import { ROLES } from "@/config/roles";
 
 export default function DashboardPage() {
@@ -51,8 +51,23 @@ export default function DashboardPage() {
 
         {(isRoot || isAdmin) && (
           <>
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Content Creation</h2>
+            <h2 className="text-2xl font-semibold mt-8 mb-4">Content Management</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+               <Link href="/dashboard/content-studio" passHref>
+                <Card className="hover:shadow-xl transition-shadow cursor-pointer">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-lg font-medium">
+                      Content Studio
+                    </CardTitle>
+                    <LinkIcon className="h-6 w-6 text-primary" />
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Manage all your content handles & links.
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
               <Link href="/dashboard/create-product" passHref>
                 <Card className="hover:shadow-xl transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -105,7 +120,7 @@ export default function DashboardPage() {
         )}
 
         {(isRoot || isAdmin) && (
-            <h2 className="text-2xl font-semibold mt-10 mb-4">Management</h2>
+            <h2 className="text-2xl font-semibold mt-10 mb-4">Administration</h2>
         )}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {(isRoot || isAdmin) && (

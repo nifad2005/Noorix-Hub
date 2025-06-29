@@ -1,16 +1,15 @@
 
 "use client";
 
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useState, useEffect } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,149 +18,167 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, FileText, Sparkles } from "lucide-react";
-import { generateContent, type ContentGeneratorOutput } from "@/ai/flows/content-generator-flow";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { Loader2, AlertCircle, Link as LinkIcon, PlusCircle } from "lucide-react";
+import type { IContentHandle } from "@/models/ContentHandle";
+import { ContentHandleCard } from "@/components/dashboard/ContentHandleCard";
+import { ROLES } from "@/config/roles";
 
-const allowedCategories = ["WEB DEVELOPMENT", "ML", "AI"] as const;
-
-const blogFormSchema = z.object({
-  title: z.string().min(5, { message: "Title must be at least 5 characters." }),
-  content: z.string().min(50, { message: "Content must be at least 50 characters." }),
-  featuredImage: z.string().url().optional().or(z.literal('')),
-  category: z.enum(allowedCategories, { required_error: "Please select a category." }),
-  tags: z.string().min(2, { message: "Please add at least one tag." }),
+const handleFormSchema = z.object({
+  name: z.string().min(3, { message: "Name must be at least 3 characters." }).max(50),
+  link: z.string().url({ message: "Please enter a valid URL." }),
+  description: z.string().max(200).optional(),
 });
 
-type BlogFormValues = z.infer<typeof blogFormSchema>;
+type HandleFormValues = z.infer<typeof handleFormSchema>;
 
 export default function ContentStudioPage() {
   const { toast } = useToast();
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [prompt, setPrompt] = useState("");
-  const [contentGenerated, setContentGenerated] = useState(false);
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
 
-  const form = useForm<BlogFormValues>({
-    resolver: zodResolver(blogFormSchema),
-    defaultValues: {
-      title: "",
-      content: "",
-      featuredImage: "",
-      category: undefined,
-      tags: "",
-    },
+  const [handles, setHandles] = useState<IContentHandle[]>([]);
+  const [isLoadingHandles, setIsLoadingHandles] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const canManage = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
+  const form = useForm<HandleFormValues>({
+    resolver: zodResolver(handleFormSchema),
+    defaultValues: { name: "", link: "", description: "" },
   });
 
-  const handleGenerateContent = async () => {
-    if (!prompt.trim()) {
-      toast({ title: "Prompt is empty", description: "Please enter a topic to generate content.", variant: "destructive" });
-      return;
-    }
-    setIsGenerating(true);
-    setContentGenerated(false);
+  const fetchHandles = async () => {
+    setIsLoadingHandles(true);
+    setError(null);
     try {
-      const result: ContentGeneratorOutput = await generateContent({
-        topic: prompt,
-        contentType: "blog",
-      });
-      
-      form.setValue("title", result.title);
-      form.setValue("content", result.body);
-      form.setValue("tags", result.suggestedTags.join(", "));
-      setContentGenerated(true);
-
-      toast({
-        title: "Content Generated!",
-        description: "The AI has created a draft for you. Review and save it.",
-      });
-
-    } catch (error) {
-      console.error("AI Generation Error:", error);
-      toast({
-        title: "Generation Failed",
-        description: "The AI could not generate content. Please try again.",
-        variant: "destructive",
-      });
+      const response = await fetch("/api/content-handles");
+      if (!response.ok) throw new Error("Failed to fetch content handles.");
+      const data = await response.json();
+      setHandles(data.handles);
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
-      setIsGenerating(false);
+      setIsLoadingHandles(false);
     }
   };
 
-  async function onSaveSubmit(data: BlogFormValues) {
-    setIsSaving(true);
+  useEffect(() => {
+    if (!authLoading) {
+      if (canManage) {
+        fetchHandles();
+      } else {
+        toast({ title: "Access Denied", description: "You don't have permission to manage content handles.", variant: "destructive" });
+        router.push("/dashboard");
+      }
+    }
+  }, [authLoading, canManage, router, toast]);
+
+  async function onSubmit(data: HandleFormValues) {
+    setIsSubmitting(true);
     try {
-      const response = await fetch('/api/blogs', {
+      const response = await fetch('/api/content-handles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-      toast({ title: "Blog Post Saved!", description: "Your new post is live." });
+      if (!response.ok) throw new Error(await response.text());
+      
+      toast({ title: "Handle Created", description: "The new content handle has been added." });
       form.reset();
-      setPrompt("");
-      setContentGenerated(false);
+      fetchHandles(); // Refetch the list
     } catch (error) {
-      console.error("Failed to save post:", error);
-      toast({ title: "Save Failed", description: "Could not save the blog post.", variant: "destructive" });
+      toast({ title: "Creation Failed", description: (error as Error).message, variant: "destructive" });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
+  }
+
+  const handleDelete = async (handleId: string) => {
+    try {
+      const response = await fetch(`/api/content-handles/${handleId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) throw new Error(await response.text());
+
+      toast({ title: "Handle Deleted", description: "The content handle has been removed." });
+      setHandles(prev => prev.filter(h => h._id !== handleId));
+    } catch (error) {
+      toast({ title: "Deletion Failed", description: (error as Error).message, variant: "destructive" });
+    }
+  };
+
+  if (authLoading || (!canManage && !authLoading)) {
+    return (
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+          <Loader2 className="h-16 w-16 animate-spin text-primary" />
+        </div>
+      </PageWrapper>
+    );
   }
 
   return (
     <PageWrapper>
-      <div className="space-y-8">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight font-headline flex items-center">
-            <Wand2 className="mr-3 h-8 w-8 text-primary" /> Content Studio
-          </h1>
-          <p className="text-muted-foreground">
-            Generate full blog post drafts from a simple idea and publish them instantly.
-          </p>
-        </header>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl font-headline flex items-center">
+                <LinkIcon className="mr-3 h-6 w-6 text-primary" />
+                Content Handles
+              </CardTitle>
+              <CardDescription>
+                Your saved links to various content creation platforms and tools. Click any card to open the link in a new tab.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingHandles ? (
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-destructive flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  <p>{error}</p>
+                </div>
+              ) : handles.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {handles.map(handle => (
+                    <ContentHandleCard key={handle._id} handle={handle} onDelete={() => handleDelete(handle._id)} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-muted-foreground py-10 text-center">No content handles added yet. Use the form to add your first one.</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="shadow-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center"><Sparkles className="mr-2 h-5 w-5 text-amber-500" />1. Generate Draft with AI</CardTitle>
-            <CardDescription>Enter a topic or a detailed prompt, and let the AI create a blog post draft for you.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="e.g., 'Write a blog post about the key differences between server components and client components in Next.js 14, targeting an intermediate developer audience.'"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="min-h-[100px]"
-              disabled={isGenerating}
-            />
-            <Button onClick={handleGenerateContent} disabled={isGenerating || !prompt}>
-              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-              {isGenerating ? "Generating..." : "Generate Content"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className={`shadow-xl transition-opacity duration-500 ${contentGenerated ? 'opacity-100' : 'opacity-50'}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center"><FileText className="mr-2 h-5 w-5 text-primary" />2. Review & Publish Blog Post</CardTitle>
-            <CardDescription>Edit the generated content below and save it to publish on your Noorix Hub blog.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSaveSubmit)} className="space-y-6">
-                <fieldset disabled={!contentGenerated || isSaving} className="space-y-6">
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <PlusCircle className="mr-2 h-5 w-5 text-primary" />
+                Add New Handle
+              </CardTitle>
+              <CardDescription>Add a new link to your content studio.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                   <FormField
                     control={form.control}
-                    name="title"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Post Title</FormLabel>
+                        <FormLabel>Handle Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="AI-generated title will appear here" {...field} />
+                          <Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -169,16 +186,12 @@ export default function ContentStudioPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="content"
+                    name="link"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>URL</FormLabel>
                         <FormControl>
-                          <Textarea
-                            placeholder="AI-generated content will appear here..."
-                            className="resize-y min-h-[250px]"
-                            {...field}
-                          />
+                          <Input type="url" placeholder="https://facebook.com/yourpage" {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -186,64 +199,26 @@ export default function ContentStudioPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="featuredImage"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Featured Image URL (Optional)</FormLabel>
+                        <FormLabel>Description (Optional)</FormLabel>
                         <FormControl>
-                          <Input type="url" placeholder="https://example.com/image.png" {...field} />
+                          <Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select a category" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="WEB DEVELOPMENT">WEB DEVELOPMENT</SelectItem>
-                              <SelectItem value="ML">ML</SelectItem>
-                              <SelectItem value="AI">AI</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="tags"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Tags</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., nextjs, react, ai" {...field} />
-                          </FormControl>
-                          <FormDescription>Comma-separated.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </fieldset>
-                <Button type="submit" disabled={!contentGenerated || isSaving}>
-                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  {isSaving ? "Saving Post..." : "Save Post"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isSubmitting ? "Adding..." : "Add Handle"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PageWrapper>
   );
