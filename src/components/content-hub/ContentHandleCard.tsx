@@ -1,8 +1,6 @@
-
 "use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -17,29 +15,45 @@ interface ContentHandleCardProps {
   onEdit: () => void;
 }
 
-const getIconForLink = (link: string) => {
+interface HandleVisuals {
+  Icon: React.ElementType;
+  iconBgClass: string;
+  iconColorClass: string;
+}
+
+const getHandleVisuals = (link: string): HandleVisuals => {
   try {
     const url = new URL(link);
     const hostname = url.hostname.toLowerCase();
-    
-    const iconProps = { className: "h-6 w-6 text-muted-foreground" };
 
-    if (hostname.includes('facebook.com')) return <Facebook {...iconProps} />;
-    if (hostname.includes('youtube.com')) return <Youtube {...iconProps} />;
-    if (hostname.includes('github.com')) return <Github {...iconProps} />;
-    if (hostname.includes('noorix') || hostname.includes('vercel.app')) return <BotMessageSquare {...iconProps} />;
-    if (hostname.includes('drive.google.com') || hostname.includes('docs.google.com') || hostname.includes('sheets.google.com')) return <FileText {...iconProps} />;
-
+    if (hostname.includes('facebook.com')) {
+      return { Icon: Facebook, iconBgClass: 'bg-blue-600', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('youtube.com')) {
+      return { Icon: Youtube, iconBgClass: 'bg-red-600', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('github.com')) {
+      return { Icon: Github, iconBgClass: 'bg-gray-800', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('noorix') || hostname.includes('vercel.app')) {
+      return { Icon: BotMessageSquare, iconBgClass: 'bg-primary', iconColorClass: 'text-primary-foreground' };
+    }
+    if (hostname.includes('drive.google.com') || hostname.includes('docs.google.com') || hostname.includes('sheets.google.com')) {
+      return { Icon: FileText, iconBgClass: 'bg-sky-500', iconColorClass: 'text-white' };
+    }
   } catch (error) {
-    // Invalid URL, return default icon
+    // Invalid URL, fall through to default
   }
-  return <Globe className="h-6 w-6 text-muted-foreground" />;
+  // Default visuals
+  return { Icon: Globe, iconBgClass: 'bg-muted', iconColorClass: 'text-muted-foreground' };
 };
 
 
 export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHandleCardProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  const { Icon, iconBgClass, iconColorClass } = getHandleVisuals(handle.link);
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -61,19 +75,17 @@ export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHa
   };
   
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent link opening when clicking on buttons inside the card
     if ((e.target as HTMLElement).closest('button')) {
       e.preventDefault();
       return;
     }
     
-    // Ctrl/Cmd click or middle mouse click for new tab
     if (e.ctrlKey || e.metaKey || e.button === 1) {
       window.open(handle.link, '_blank');
       e.preventDefault();
     } else {
        window.open(handle.link, '_blank');
-       e.preventDefault(); // always open in new tab
+       e.preventDefault();
     }
   };
 
@@ -86,8 +98,8 @@ export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHa
       >
         <CardHeader>
           <div className="flex items-center gap-4">
-              <div className="p-3 bg-muted rounded-lg">
-                  {getIconForLink(handle.link)}
+              <div className={cn("p-3 rounded-lg transition-colors", iconBgClass)}>
+                  <Icon className={cn("h-6 w-6", iconColorClass)} />
               </div>
               <div className="flex-1 overflow-hidden">
                   <CardTitle className="text-lg font-semibold line-clamp-1">{handle.name}</CardTitle>
