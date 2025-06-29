@@ -113,4 +113,3 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
     </div>
   );
 }
-
