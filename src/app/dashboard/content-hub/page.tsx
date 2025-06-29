@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -14,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, AlertCircle, Inbox, Lightbulb } from "lucide-react";
+import { Loader2, PlusCircle, AlertCircle, Inbox, Lightbulb, ListRestart } from "lucide-react";
 import type { IContentHandle } from "@/models/ContentHandle";
 import { ContentHandleCard } from "@/components/content-hub/ContentHandleCard";
 import { ROLES } from "@/config/roles";
@@ -29,6 +30,15 @@ const handleFormSchema = z.object({
 
 type HandleFormValues = z.infer<typeof handleFormSchema>;
 
+const getHostname = (link: string): string => {
+  try {
+    const url = new URL(link);
+    return url.hostname.replace(/^www\./, '');
+  } catch (error) {
+    return link;
+  }
+};
+
 export default function ContentHubPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -39,6 +49,7 @@ export default function ContentHubPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
   
   // State for Edit Dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -78,7 +89,7 @@ export default function ContentHubPage() {
   
   const handleCardClick = (handle: IContentHandle) => {
     setActiveHandleId(handle._id as string);
-    window.open(handle.link, '_blank');
+    // The link is now opened via the card's onClick handler
   }
 
   useEffect(() => {
@@ -195,6 +206,41 @@ export default function ContentHubPage() {
     }
   };
 
+  const handleAutoReorder = async () => {
+    setIsReordering(true);
+    const originalHandles = [...handles];
+    try {
+      const sortedHandles = [...handles].sort((a, b) => {
+        const hostnameA = getHostname(a.link);
+        const hostnameB = getHostname(b.link);
+        return hostnameA.localeCompare(hostnameB);
+      });
+
+      const orderedIds = sortedHandles.map(handle => handle._id as string);
+
+      setHandles(sortedHandles); // Optimistic UI update
+
+      const response = await fetch('/api/content-handles/reorder', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderedIds }),
+      });
+
+      if (!response.ok) {
+        setHandles(originalHandles); // Revert UI on failure
+        throw new Error('Failed to save the new order');
+      }
+
+      toast({ title: "Success", description: "Handles have been reordered alphabetically." });
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Error", description: "Could not save the new order.", variant: "destructive" });
+      setHandles(originalHandles); // Revert on any error
+    } finally {
+      setIsReordering(false);
+    }
+  };
+
 
   if (authLoading || (!canManageContent && !authLoading)) {
     return (
@@ -214,48 +260,54 @@ export default function ContentHubPage() {
             <h1 className="text-3xl font-bold tracking-tight font-headline">Content Hub</h1>
             <p className="text-muted-foreground">Manage and reorder your content creation links.</p>
           </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4" /> New Handle</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Add New Content Handle</DialogTitle>
-                <DialogDescription>
-                  Add a new link. You can reorder it later by dragging.
-                </DialogDescription>
-              </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onCreateSubmit)} className="space-y-4 py-4">
-                  <FormField control={form.control} name="name" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Handle Name</FormLabel>
-                      <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="link" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Link URL</FormLabel>
-                      <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description (Optional)</FormLabel>
-                      <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <Button type="submit" disabled={isSubmitting} className="w-full">
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {isSubmitting ? "Adding..." : "Add Handle"}
-                  </Button>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleAutoReorder} disabled={isReordering || handles.length < 2}>
+              {isReordering ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListRestart className="mr-2 h-4 w-4" />}
+              Auto Reorder
+            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><PlusCircle className="mr-2 h-4 w-4" /> New Handle</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Content Handle</DialogTitle>
+                  <DialogDescription>
+                    Add a new link. You can reorder it later by dragging.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onCreateSubmit)} className="space-y-4 py-4">
+                    <FormField control={form.control} name="name" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Handle Name</FormLabel>
+                        <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="link" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Link URL</FormLabel>
+                        <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name="description" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <Button type="submit" disabled={isSubmitting} className="w-full">
+                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      {isSubmitting ? "Adding..." : "Add Handle"}
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </header>
 
          <Alert>
@@ -294,7 +346,7 @@ export default function ContentHubPage() {
                     <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
                     >
                         {handles.map((handle, index) => (
                             <Draggable key={handle._id as string} draggableId={handle._id as string} index={index}>
@@ -366,3 +418,5 @@ export default function ContentHubPage() {
     </PageWrapper>
   );
 }
+
+    
