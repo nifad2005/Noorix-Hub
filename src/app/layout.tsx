@@ -7,6 +7,9 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "Noorix Hub",
   description: "Welcome to Noorix Hub",
+  icons: {
+    icon: '/images/logo_transparent.png',
+  },
 };
 
 export default function RootLayout({
