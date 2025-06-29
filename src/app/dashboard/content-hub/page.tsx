@@ -120,16 +120,31 @@ export default function ContentHubPage() {
       .map(handle => handle.link);
 
     if (selectedLinks.length > 0) {
+      // Browsers have security features (pop-up blockers) that may block opening multiple tabs at once.
+      // This approach creates a temporary link element and programmatically clicks it,
+      // which is often more reliable for bypassing blockers.
       selectedLinks.forEach(link => {
-        window.open(link, '_blank', 'noopener,noreferrer');
+        const anchor = document.createElement('a');
+        anchor.href = link;
+        anchor.target = '_blank';
+        anchor.rel = 'noopener noreferrer';
+        
+        // Append to body, click, and then remove. This is more robust across browsers.
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
       });
+
       toast({
-        title: "Links Opened",
-        description: `${selectedLinks.length} link(s) opened in new tabs.`,
+        title: "Opening Links...",
+        description: `Attempting to open ${selectedLinks.length} link(s). Please check if your browser blocked any pop-ups.`,
       });
+      
+      // We reset the selection after attempting to open.
       setSelectedHandles([]);
     }
   };
+
 
   if (authLoading || (!canManageContent && !authLoading)) {
     return (
