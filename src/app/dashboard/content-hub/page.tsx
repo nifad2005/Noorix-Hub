@@ -43,6 +43,7 @@ export default function ContentHubPage() {
   // State for Edit Dialog
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingHandle, setEditingHandle] = useState<IContentHandle | null>(null);
+  const [activeHandleId, setActiveHandleId] = useState<string | null>(null);
 
   const form = useForm<HandleFormValues>({
     resolver: zodResolver(handleFormSchema),
@@ -304,6 +305,8 @@ export default function ContentHubPage() {
                                             handle={handle} 
                                             onHandleDeleted={onHandleDeleted}
                                             onEdit={() => openEditDialog(handle)}
+                                            isActive={handle._id === activeHandleId}
+                                            onCardClick={() => setActiveHandleId(handle._id as string)}
                                         />
                                      </div>
                                 )}

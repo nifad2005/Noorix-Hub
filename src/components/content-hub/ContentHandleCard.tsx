@@ -21,6 +21,8 @@ interface ContentHandleCardProps {
   handle: IContentHandle;
   onHandleDeleted: (handleId: string) => void;
   onEdit: () => void;
+  isActive: boolean;
+  onCardClick: () => void;
 }
 
 interface HandleVisuals {
@@ -52,7 +54,10 @@ const getHandleVisuals = (link: string): HandleVisuals => {
     if (hostname.includes('linkedin.com')) {
         return { Icon: Linkedin, iconBgClass: 'bg-sky-700', iconColorClass: 'text-white' };
     }
-    if (hostname.includes('noorix') || hostname.includes('vercel.app')) {
+    if (hostname.includes('noorix')) {
+      return { Icon: BotMessageSquare, iconBgClass: 'bg-green-600', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('vercel.app')) {
       return { Icon: BotMessageSquare, iconBgClass: 'bg-green-600', iconColorClass: 'text-white' };
     }
     if (hostname.includes('drive.google.com') || hostname.includes('docs.google.com') || hostname.includes('sheets.google.com')) {
@@ -66,7 +71,7 @@ const getHandleVisuals = (link: string): HandleVisuals => {
 };
 
 
-export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHandleCardProps) {
+export function ContentHandleCard({ handle, onHandleDeleted, onEdit, isActive, onCardClick }: ContentHandleCardProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -92,28 +97,25 @@ export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHa
   };
   
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    // Prevent navigation if any button inside the card is clicked
+    // Prevent actions if any button inside the card is clicked
     if ((e.target as HTMLElement).closest('button')) {
       e.preventDefault();
       return;
     }
     
-    // Open in new tab on Ctrl/Cmd click or middle mouse click
-    if (e.ctrlKey || e.metaKey || e.button === 1) {
-      window.open(handle.link, '_blank');
-      e.preventDefault();
-    } else {
-       // For a normal left-click, open in new tab and don't navigate the current tab
-       window.open(handle.link, '_blank');
-       e.preventDefault();
-    }
+    onCardClick(); // Set the card as active
+
+    // Open in new tab on Ctrl/Cmd click or middle mouse click, or normal click
+    window.open(handle.link, '_blank');
+    e.preventDefault();
   };
 
   return (
       <Card
         onClick={handleCardClick}
         className={cn(
-          "flex flex-col h-full transition-all duration-200 border-2 border-transparent hover:border-primary cursor-pointer relative group"
+          "flex flex-col h-full transition-all duration-200 border-2 cursor-pointer relative group",
+          isActive ? "border-primary shadow-lg" : "border-transparent hover:border-primary/50"
         )}
       >
         <CardHeader>
