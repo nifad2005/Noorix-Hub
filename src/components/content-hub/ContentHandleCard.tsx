@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -39,9 +38,8 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent link navigation when clicking delete action
-    e.stopPropagation();
+  // Corrected: The function no longer expects an event argument.
+  const handleDelete = async () => {
     setIsDeleting(true);
     try {
       const response = await fetch(`/api/content-handles/${handle._id}`, {
@@ -62,7 +60,7 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
     }
   };
 
-  const stopPropagation = (e: React.MouseEvent) => {
+  const preventDefaultAndPropagation = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
   };
@@ -91,18 +89,26 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
       <div className="absolute top-3 right-3 z-10">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-background/60 hover:bg-background" onClick={stopPropagation} disabled={isDeleting}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-background/60 hover:bg-background" 
+              onClick={preventDefaultAndPropagation} 
+              disabled={isDeleting}
+            >
               <Trash2 className="h-4 w-4 text-destructive" />
               <span className="sr-only">Delete</span>
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent onClick={stopPropagation}>
+          {/* Using preventDefaultAndPropagation here too, just in case to stop the link from firing */}
+          <AlertDialogContent onClick={preventDefaultAndPropagation}> 
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>This action cannot be undone. This will permanently delete the "{handle.name}" handle.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
+              {/* Correctly calling handleDelete without any arguments */}
               <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
                 {isDeleting ? "Deleting..." : "Delete"}
               </AlertDialogAction>
