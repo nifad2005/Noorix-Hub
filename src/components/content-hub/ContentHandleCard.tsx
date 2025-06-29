@@ -57,10 +57,12 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
     }
   };
 
+  // This function opens the link in a new tab.
   const handleCardClick = () => {
     window.open(handle.link, '_blank', 'noopener,noreferrer');
   };
 
+  // This function stops the click from propagating to the underlying card.
   const stopPropagation = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
@@ -68,11 +70,12 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
   return (
     <div className="relative group h-full">
         <Card 
+            // The onClick handler to open the link in a new tab.
             onClick={handleCardClick}
             className="flex flex-col h-full transition-all duration-200 border group-hover:border-primary group-hover:shadow-lg cursor-pointer"
+            // tabIndex allows the card to be focusable for keyboard navigation.
             tabIndex={0}
-            role="link"
-            aria-label={`Open ${handle.name}`}
+            // onKeyDown allows keyboard users (Enter/Space) to trigger the click.
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -96,6 +99,8 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
             </CardContent>
         </Card>
       
+      {/* The delete button is positioned on top of the card. */}
+      {/* Its onClick handler stops the event, so clicking it won't trigger handleCardClick. */}
       <div className="absolute top-3 right-3 z-10" onClick={stopPropagation}>
         <AlertDialog>
           <AlertDialogTrigger asChild>
