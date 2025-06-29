@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, AlertCircle, Inbox } from "lucide-react";
+import { Loader2, PlusCircle, AlertCircle, Inbox, Link as LinkIcon } from "lucide-react";
 import type { IContentHandle } from "@/models/ContentHandle";
 import { ContentHandleCard } from "@/components/content-hub/ContentHandleCard";
 import { ROLES } from "@/config/roles";
@@ -36,6 +37,7 @@ export default function ContentHubPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const form = useForm<HandleFormValues>({
     resolver: zodResolver(handleFormSchema),
@@ -67,7 +69,8 @@ export default function ContentHubPage() {
     if (!authLoading) {
       if (canManageContent) {
         fetchHandles();
-      } else {
+      } else if (!canManageContent) {
+        // Redirect non-admins or non-root users
         router.push("/dashboard");
       }
     }
@@ -89,6 +92,7 @@ export default function ContentHubPage() {
 
       toast({ title: "Success", description: "Content handle created successfully." });
       form.reset();
+      setIsDialogOpen(false); // Close dialog on success
       fetchHandles(); // Refetch handles to show the new one
     } catch (err) {
       toast({ title: "Error", description: (err as Error).message, variant: "destructive" });
@@ -110,55 +114,60 @@ export default function ContentHubPage() {
       </PageWrapper>
     );
   }
-
+  
   return (
     <PageWrapper>
       <div className="space-y-8">
-        <header>
-          <h1 className="text-3xl font-bold tracking-tight font-headline">Content Hub</h1>
-          <p className="text-muted-foreground">Manage your content creation and publishing links.</p>
+        <header className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight font-headline">Content Hub</h1>
+            <p className="text-muted-foreground">Your central place for content creation and publishing links.</p>
+          </div>
+           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><PlusCircle className="mr-2 h-4 w-4" /> Add New Handle</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Content Handle</DialogTitle>
+                <DialogDescription>
+                  Add a new link to your content creation tools or platforms. Click save when you're done.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Handle Name</FormLabel>
+                      <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="link" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Link URL</FormLabel>
+                      <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <Button type="submit" disabled={isSubmitting} className="w-full">
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting ? "Adding..." : "Add Handle"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </header>
 
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center"><PlusCircle className="mr-2 h-6 w-6" /> Add New Content Handle</CardTitle>
-            <CardDescription>Add a new link to your content creation tools or platforms.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Handle Name</FormLabel>
-                    <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="link" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Link URL</FormLabel>
-                    <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="description" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isSubmitting ? "Adding..." : "Add Handle"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-
         <div className="space-y-4">
-          <h2 className="text-2xl font-semibold">Your Content Handles</h2>
           {isLoadingData ? (
             <div className="flex justify-center items-center h-40">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -177,7 +186,7 @@ export default function ContentHubPage() {
             <Card className="text-center">
               <CardContent className="p-10">
                 <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                <p className="mt-4 text-muted-foreground">No content handles added yet. Use the form above to add your first one.</p>
+                <p className="mt-4 text-muted-foreground">No content handles added yet. Use the button above to add your first one.</p>
               </CardContent>
             </Card>
           ) : (

@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { FilePlus2, FlaskConical, Edit, MessageSquareMore, Users, Link as LinkIcon } from "lucide-react";
+import { FilePlus2, FlaskConical, Edit, MessageSquareMore, Users, BotMessageSquare } from "lucide-react";
 import { ROLES } from "@/config/roles";
 
 export default function DashboardPage() {
@@ -60,11 +60,11 @@ export default function DashboardPage() {
                     <CardTitle className="text-lg font-medium">
                       Content Hub
                     </CardTitle>
-                    <LinkIcon className="h-6 w-6 text-primary" />
+                    <BotMessageSquare className="h-6 w-6 text-primary" />
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      Manage your content creation links.
+                      Your central place for content links.
                     </p>
                   </CardContent>
                 </Card>
