@@ -4,7 +4,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageWrapper } from "@/components/layout/PageWrapper";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,20 +51,20 @@ export default function ContentStudioPage() {
     defaultValues: { name: "", link: "", description: "" },
   });
 
-  const fetchHandles = async () => {
+  const fetchHandles = useCallback(async () => {
     setIsLoadingHandles(true);
     setError(null);
     try {
       const response = await fetch("/api/content-handles");
       if (!response.ok) throw new Error("Failed to fetch content handles.");
       const data = await response.json();
-      setHandles(data.handles);
+      setHandles(data.handles || []);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setIsLoadingHandles(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -75,7 +75,7 @@ export default function ContentStudioPage() {
         router.push("/dashboard");
       }
     }
-  }, [authLoading, canManage, router, toast]);
+  }, [authLoading, canManage, router, toast, fetchHandles]);
 
   async function onSubmit(data: HandleFormValues) {
     setIsSubmitting(true);
@@ -86,7 +86,10 @@ export default function ContentStudioPage() {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Creation failed");
+      }
       
       toast({ title: "Handle Created", description: "The new content handle has been added." });
       form.reset();
@@ -103,7 +106,10 @@ export default function ContentStudioPage() {
       const response = await fetch(`/api/content-handles/${handleId}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error(await response.text());
+      if (!response.ok) {
+         const errorData = await response.json();
+         throw new Error(errorData.message || "Deletion failed");
+      }
 
       toast({ title: "Handle Deleted", description: "The content handle has been removed." });
       setHandles(prev => prev.filter(h => h._id !== handleId));
