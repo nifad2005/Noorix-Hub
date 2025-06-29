@@ -2,7 +2,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useCallback } from "react";
+import { createContext, useCallback, useMemo } from "react";
 import { SessionProvider, useSession, signIn, signOut } from "next-auth/react";
 import type { Session } from "next-auth";
 import type { UserRole } from "@/config/roles"; // Import UserRole
@@ -36,15 +36,17 @@ function AuthProviderContent({ children }: AuthProviderProps) {
   const loading = status === "loading";
   const isAuthenticated = status === "authenticated";
 
-  const user: User | null = session?.user
-    ? {
-        id: session.user.id,
-        name: session.user.name,
-        email: session.user.email,
-        avatarUrl: session.user.image,
-        role: session.user.role, // Assign role from session
-      }
-    : null;
+  const user: User | null = useMemo(() => {
+    return session?.user
+      ? {
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+          avatarUrl: session.user.image,
+          role: session.user.role, // Assign role from session
+        }
+      : null;
+  }, [session]);
 
   const login = useCallback(() => {
     signIn("google", { callbackUrl: "/profile" });
