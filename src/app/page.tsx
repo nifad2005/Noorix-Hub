@@ -65,23 +65,23 @@ export default async function HomePage() {
         <div className="flex flex-wrap justify-center gap-4">
           {isAdminOrRoot ? (
             <>
-              <Link href="/dashboard">
-                <Button size="lg">
-                  <LayoutDashboard className="mr-2 h-5 w-5" />
-                  Dashboard
-                </Button>
-              </Link>
               <Link href="/dashboard/content-studio">
                  <Button size="lg" variant="default">
                    <BotMessageSquare className="mr-2 h-5 w-5" />
                    Content Studio
                  </Button>
               </Link>
+              <Link href="/dashboard">
+                <Button size="lg" variant="outline">
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Button>
+              </Link>
             </>
           ) : (
             <>
               <Link href="/dashboard">
-                <Button size="lg">
+                <Button size="lg" variant="outline">
                   <LayoutDashboard className="mr-2 h-5 w-5" />
                   Dashboard
                 </Button>
@@ -119,5 +119,3 @@ export default async function HomePage() {
     </PageWrapper>
   );
 }
-
-    
