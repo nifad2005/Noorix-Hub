@@ -18,9 +18,9 @@ export async function GET(request: Request) {
 
   try {
     await connectDB();
-    // Fetch handles created by any admin or root user
+    // Fetch handles created by any admin or root user, sorted by position
     const handles = await ContentHandle.find({})
-      .sort({ createdAt: -1 })
+      .sort({ position: 1 }) // Sort by position
       .lean();
 
     return NextResponse.json(handles);
@@ -53,10 +53,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Name and Link are required.' }, { status: 400 });
     }
 
+    // Calculate new position
+    const lastHandle = await ContentHandle.findOne().sort({ position: -1 });
+    const newPosition = lastHandle ? lastHandle.position + 1 : 0;
+
     const newHandle = new ContentHandle({
       name,
       link,
       description,
+      position: newPosition, // Set position
       createdBy: new mongoose.Types.ObjectId(session.user.id),
     });
 

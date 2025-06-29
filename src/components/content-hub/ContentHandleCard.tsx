@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Facebook, Youtube, Github, FileText, BotMessageSquare, Globe } from 'lucide-react';
+import { Trash2, Facebook, Youtube, Github, FileText, BotMessageSquare, Globe, Pencil } from 'lucide-react';
 import type { IContentHandle } from '@/models/ContentHandle';
 import { cn } from '@/lib/utils';
 
 interface ContentHandleCardProps {
   handle: IContentHandle;
   onHandleDeleted: (handleId: string) => void;
+  onEdit: () => void;
 }
 
 const getIconForLink = (link: string) => {
@@ -36,7 +37,7 @@ const getIconForLink = (link: string) => {
 };
 
 
-export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCardProps) {
+export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHandleCardProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -58,10 +59,27 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
         setIsDeleting(false);
     }
   };
+  
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent link opening when clicking on buttons inside the card
+    if ((e.target as HTMLElement).closest('button')) {
+      e.preventDefault();
+      return;
+    }
+    
+    // Ctrl/Cmd click or middle mouse click for new tab
+    if (e.ctrlKey || e.metaKey || e.button === 1) {
+      window.open(handle.link, '_blank');
+      e.preventDefault();
+    } else {
+       window.open(handle.link, '_blank');
+       e.preventDefault(); // always open in new tab
+    }
+  };
 
   return (
-    <Link href={handle.link} target="_blank" rel="noopener noreferrer" className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg">
       <Card
+        onClick={handleCardClick}
         className={cn(
           "flex flex-col h-full transition-all duration-200 border-2 border-transparent hover:border-primary cursor-pointer relative group"
         )}
@@ -83,12 +101,19 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
           </CardDescription>
         </CardContent>
 
-        <div className="absolute bottom-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-2 right-2 z-10 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+           <Button
+            variant="ghost" size="icon" className="h-8 w-8 rounded-full"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+           >
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+            <span className="sr-only">Edit</span>
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
                 variant="ghost" size="icon" className="h-8 w-8 rounded-full"
-                onClick={handleDelete}
+                onClick={(e) => e.stopPropagation()} // Prevent card click
                 disabled={isDeleting}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -101,7 +126,7 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
                 <AlertDialogDescription>This action cannot be undone. This will permanently delete the "{handle.name}" handle.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                <AlertDialogCancel onClick={(e) => e.stopPropagation()} disabled={isDeleting}>Cancel</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
                   {isDeleting ? "Deleting..." : "Delete"}
                 </AlertDialogAction>
@@ -110,6 +135,5 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
           </AlertDialog>
         </div>
       </Card>
-    </Link>
   );
 }
