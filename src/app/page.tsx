@@ -63,20 +63,29 @@ export default async function HomePage() {
           Your central platform for innovative tools and experiments. Explore our featured products and dive into the world of X&I.
         </p>
         <div className="flex flex-wrap justify-center gap-4">
-          <Link href="/dashboard">
-            <Button size="lg">
-              <LayoutDashboard className="mr-2 h-5 w-5" />
-              Dashboard
-            </Button>
-          </Link>
-          <Link href="/dashboard/content-hub">
-             <Button size="lg">
-               <BotMessageSquare className="mr-2 h-5 w-5" />
-               Content Hub
-             </Button>
-          </Link>
-          {!isAdminOrRoot && (
+          {isAdminOrRoot ? (
             <>
+              <Link href="/dashboard">
+                <Button size="lg">
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/dashboard/content-hub">
+                 <Button size="lg" variant="default">
+                   <BotMessageSquare className="mr-2 h-5 w-5" />
+                   Content Hub
+                 </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/dashboard">
+                <Button size="lg">
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Button>
+              </Link>
               <Link href="/products">
                 <Button size="lg" variant="outline">Explore Products</Button>
               </Link>
