@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ReactNode } from "react";
@@ -46,7 +45,8 @@ function AuthProviderContent({ children }: AuthProviderProps) {
           role: session.user.role, // Assign role from session
         }
       : null;
-  }, [session]);
+    // Depend on stable, primitive values from the session object to prevent unnecessary re-renders.
+  }, [session?.user?.id, session?.user?.role, session?.user?.name, session?.user?.image]);
 
   const login = useCallback(() => {
     signIn("google", { callbackUrl: "/profile" });
