@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -53,17 +54,17 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-semibold mt-8 mb-4">Content Management</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               
-              <Link href="/dashboard/content-studio" passHref>
+              <Link href="/dashboard/content-hub" passHref>
                 <Card className="hover:shadow-xl transition-shadow cursor-pointer">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-lg font-medium">
-                      Content Studio
+                      Content Hub
                     </CardTitle>
                     <LinkIcon className="h-6 w-6 text-primary" />
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
-                      Manage content creation links.
+                      Manage your content creation links.
                     </p>
                   </CardContent>
                 </Card>
