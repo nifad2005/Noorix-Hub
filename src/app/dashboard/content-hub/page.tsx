@@ -15,10 +15,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, AlertCircle, Inbox, ExternalLink } from "lucide-react";
+import { Loader2, PlusCircle, AlertCircle, Inbox, Lightbulb } from "lucide-react";
 import type { IContentHandle } from "@/models/ContentHandle";
 import { ContentHandleCard } from "@/components/content-hub/ContentHandleCard";
 import { ROLES } from "@/config/roles";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+
 
 const handleFormSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters.").max(100),
@@ -34,7 +36,6 @@ export default function ContentHubPage() {
   const { toast } = useToast();
 
   const [handles, setHandles] = useState<IContentHandle[]>([]);
-  const [selectedHandles, setSelectedHandles] = useState<string[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,48 +104,7 @@ export default function ContentHubPage() {
   
   const onHandleDeleted = (deletedHandleId: string) => {
     setHandles(prevHandles => prevHandles.filter(h => h._id !== deletedHandleId));
-    setSelectedHandles(prevSelected => prevSelected.filter(id => id !== deletedHandleId));
   };
-
-  const handleSelectionChange = (handleId: string) => {
-    setSelectedHandles(prevSelected =>
-      prevSelected.includes(handleId)
-        ? prevSelected.filter(id => id !== handleId)
-        : [...prevSelected, handleId]
-    );
-  };
-
-  const handleOpenSelected = () => {
-    const selectedLinks = handles
-      .filter(handle => selectedHandles.includes(handle._id as string))
-      .map(handle => handle.link);
-
-    if (selectedLinks.length > 0) {
-      // Browsers have security features (pop-up blockers) that may block opening multiple tabs at once.
-      // This approach creates a temporary link element and programmatically clicks it,
-      // which is often more reliable for bypassing blockers.
-      selectedLinks.forEach(link => {
-        const anchor = document.createElement('a');
-        anchor.href = link;
-        anchor.target = '_blank';
-        anchor.rel = 'noopener noreferrer';
-        
-        // Append to body, click, and then remove. This is more robust across browsers.
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-      });
-
-      toast({
-        title: "Opening Links...",
-        description: `Attempting to open ${selectedLinks.length} link(s). Please check if your browser blocked any pop-ups.`,
-      });
-      
-      // We reset the selection after attempting to open.
-      setSelectedHandles([]);
-    }
-  };
-
 
   if (authLoading || (!canManageContent && !authLoading)) {
     return (
@@ -162,57 +122,59 @@ export default function ContentHubPage() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-headline">Content Hub</h1>
-            <p className="text-muted-foreground">Select handles and open them all at once.</p>
+            <p className="text-muted-foreground">Manage your content creation links and resources.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={handleOpenSelected} disabled={selectedHandles.length === 0}>
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Open Selected ({selectedHandles.length})
-            </Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4" /> New Handle</Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                  <DialogTitle>Add New Content Handle</DialogTitle>
-                  <DialogDescription>
-                    Add a new link to your content creation tools or platforms. Click save when you're done.
-                  </DialogDescription>
-                </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                    <FormField control={form.control} name="name" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Handle Name</FormLabel>
-                        <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="link" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Link URL</FormLabel>
-                        <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <FormField control={form.control} name="description" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description (Optional)</FormLabel>
-                        <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )} />
-                    <Button type="submit" disabled={isSubmitting} className="w-full">
-                      {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {isSubmitting ? "Adding..." : "Add Handle"}
-                    </Button>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline"><PlusCircle className="mr-2 h-4 w-4" /> New Handle</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Add New Content Handle</DialogTitle>
+                <DialogDescription>
+                  Add a new link to your content creation tools or platforms. Click save when you're done.
+                </DialogDescription>
+              </DialogHeader>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+                  <FormField control={form.control} name="name" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Handle Name</FormLabel>
+                      <FormControl><Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="link" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Link URL</FormLabel>
+                      <FormControl><Input type="url" placeholder="https://facebook.com/your-page" {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <FormField control={form.control} name="description" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description (Optional)</FormLabel>
+                      <FormControl><Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                  <Button type="submit" disabled={isSubmitting} className="w-full">
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isSubmitting ? "Adding..." : "Add Handle"}
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
         </header>
+
+         <Alert>
+          <Lightbulb className="h-4 w-4" />
+          <AlertTitle>Pro Tip!</AlertTitle>
+          <AlertDescription>
+            Hold <kbd className="px-2 py-1.5 text-xs font-semibold text-foreground bg-muted border rounded-lg">Ctrl</kbd> (or <kbd className="px-2 py-1.5 text-xs font-semibold text-foreground bg-muted border rounded-lg">Cmd</kbd> on Mac) and click on cards to open them in new tabs without leaving this page.
+          </AlertDescription>
+        </Alert>
 
         <div className="space-y-4">
           {isLoadingData ? (
@@ -243,8 +205,6 @@ export default function ContentHubPage() {
                   key={handle._id as string} 
                   handle={handle} 
                   onHandleDeleted={onHandleDeleted}
-                  isSelected={selectedHandles.includes(handle._id as string)}
-                  onSelectionChange={() => handleSelectionChange(handle._id as string)}
                 />
               ))}
             </div>
