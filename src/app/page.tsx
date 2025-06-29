@@ -6,7 +6,7 @@ import { ProductCard } from "@/components/product/ProductCard";
 import type { IProduct } from "@/models/Product";
 import connectDB from "@/lib/db"; // Import connectDB
 import ProductModel from "@/models/Product"; // Import Mongoose model
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, LayoutDashboard, BotMessageSquare } from "lucide-react";
 
 type ProductSummary = Partial<IProduct> & { _id: string; snippet?: string; };
 
@@ -56,9 +56,21 @@ export default async function HomePage() {
         <p className="text-xl font-semibold text-muted-foreground max-w-2xl">
           Your central platform for innovative tools and experiments. Explore our featured products and dive into the world of X&I.
         </p>
-        <div className="flex space-x-4">
+        <div className="flex flex-wrap justify-center gap-4">
+          <Link href="/dashboard">
+            <Button size="lg">
+              <LayoutDashboard className="mr-2 h-5 w-5" />
+              Dashboard
+            </Button>
+          </Link>
+          <Link href="/dashboard/content-hub">
+             <Button size="lg" variant="outline">
+               <BotMessageSquare className="mr-2 h-5 w-5" />
+               Content Hub
+             </Button>
+          </Link>
           <Link href="/products">
-            <Button size="lg">Explore Products</Button>
+            <Button size="lg" variant="outline">Explore Products</Button>
           </Link>
           <Link href="/about">
              <Button size="lg" variant="outline">About Us</Button>
