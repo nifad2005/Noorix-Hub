@@ -53,7 +53,7 @@ const getHandleVisuals = (link: string): HandleVisuals => {
         return { Icon: Linkedin, iconBgClass: 'bg-sky-700', iconColorClass: 'text-white' };
     }
     if (hostname.includes('noorix') || hostname.includes('vercel.app')) {
-      return { Icon: BotMessageSquare, iconBgClass: 'bg-primary', iconColorClass: 'text-primary-foreground' };
+      return { Icon: BotMessageSquare, iconBgClass: 'bg-green-600', iconColorClass: 'text-white' };
     }
     if (hostname.includes('drive.google.com') || hostname.includes('docs.google.com') || hostname.includes('sheets.google.com')) {
       return { Icon: FileText, iconBgClass: 'bg-sky-500', iconColorClass: 'text-white' };
