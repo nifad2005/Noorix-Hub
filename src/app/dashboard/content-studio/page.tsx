@@ -40,45 +40,48 @@ export default function ContentStudioPage() {
   const router = useRouter();
 
   const [handles, setHandles] = useState<IContentHandle[]>([]);
-  const [isLoadingHandles, setIsLoadingHandles] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [isSubmittingForm, setIsSubmittingForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const canManage = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   const form = useForm<HandleFormValues>({
     resolver: zodResolver(handleFormSchema),
     defaultValues: { name: "", link: "", description: "" },
   });
 
+  const canManage = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
+
   const fetchHandles = useCallback(async () => {
-    setIsLoadingHandles(true);
+    setIsLoadingData(true);
     setError(null);
     try {
       const response = await fetch("/api/content-handles");
-      if (!response.ok) throw new Error("Failed to fetch content handles.");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to fetch content handles.");
+      }
       const data = await response.json();
       setHandles(data.handles || []);
     } catch (err) {
-      setError((err as Error).message);
+      const errorMessage = (err as Error).message;
+      setError(errorMessage);
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
-      setIsLoadingHandles(false);
+      setIsLoadingData(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
-    if (!authLoading) {
-      if (canManage) {
-        fetchHandles();
-      } else {
-        toast({ title: "Access Denied", description: "You don't have permission to manage content handles.", variant: "destructive" });
-        router.push("/dashboard");
-      }
+    if (!authLoading && canManage) {
+      fetchHandles();
+    } else if (!authLoading && !canManage) {
+      // If auth is loaded but user is not admin, stop loading.
+      setIsLoadingData(false);
     }
-  }, [authLoading, canManage, router, toast, fetchHandles]);
+  }, [authLoading, canManage, fetchHandles]);
 
   async function onSubmit(data: HandleFormValues) {
-    setIsSubmitting(true);
+    setIsSubmittingForm(true);
     try {
       const response = await fetch('/api/content-handles', {
         method: 'POST',
@@ -93,15 +96,15 @@ export default function ContentStudioPage() {
       
       toast({ title: "Handle Created", description: "The new content handle has been added." });
       form.reset();
-      fetchHandles(); // Refetch the list
+      await fetchHandles(); // Refetch the list after adding
     } catch (error) {
       toast({ title: "Creation Failed", description: (error as Error).message, variant: "destructive" });
     } finally {
-      setIsSubmitting(false);
+      setIsSubmittingForm(false);
     }
   }
 
-  const handleDelete = async (handleId: string) => {
+  const handleDelete = useCallback(async (handleId: string) => {
     try {
       const response = await fetch(`/api/content-handles/${handleId}`, {
         method: 'DELETE',
@@ -110,20 +113,35 @@ export default function ContentStudioPage() {
          const errorData = await response.json();
          throw new Error(errorData.message || "Deletion failed");
       }
-
       toast({ title: "Handle Deleted", description: "The content handle has been removed." });
-      setHandles(prev => prev.filter(h => h._id !== handleId));
+      await fetchHandles(); // Refetch the list after deleting
     } catch (error) {
       toast({ title: "Deletion Failed", description: (error as Error).message, variant: "destructive" });
     }
-  };
+  }, [toast, fetchHandles]);
 
-  if (authLoading || (!canManage && !authLoading)) {
+  if (authLoading) {
     return (
       <PageWrapper>
-        <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <div className="flex items-center justify-center min-h-[calc(100vh-20rem)]">
           <Loader2 className="h-16 w-16 animate-spin text-primary" />
         </div>
+      </PageWrapper>
+    );
+  }
+
+  if (!canManage) {
+    return (
+       <PageWrapper>
+        <Card className="max-w-md mx-auto mt-10">
+          <CardHeader>
+            <CardTitle className="text-destructive">Access Denied</CardTitle>
+            <CardDescription>You do not have permission to view this page. Please contact an administrator.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+          </CardContent>
+        </Card>
       </PageWrapper>
     );
   }
@@ -143,14 +161,17 @@ export default function ContentStudioPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingHandles ? (
+              {isLoadingData ? (
                 <div className="flex justify-center items-center py-10">
                   <Loader2 className="h-12 w-12 animate-spin text-primary" />
                 </div>
               ) : error ? (
-                <div className="text-destructive flex items-center gap-2">
+                <div className="text-destructive flex items-center gap-2 p-4 bg-destructive/10 rounded-md">
                   <AlertCircle className="h-5 w-5" />
-                  <p>{error}</p>
+                  <div>
+                    <p className="font-semibold">Error loading handles</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
                 </div>
               ) : handles.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,7 +205,7 @@ export default function ContentStudioPage() {
                       <FormItem>
                         <FormLabel>Handle Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmitting} />
+                          <Input placeholder="e.g., Facebook Page" {...field} disabled={isSubmittingForm} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -197,7 +218,7 @@ export default function ContentStudioPage() {
                       <FormItem>
                         <FormLabel>URL</FormLabel>
                         <FormControl>
-                          <Input type="url" placeholder="https://facebook.com/yourpage" {...field} disabled={isSubmitting} />
+                          <Input type="url" placeholder="https://facebook.com/yourpage" {...field} disabled={isSubmittingForm} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -210,15 +231,15 @@ export default function ContentStudioPage() {
                       <FormItem>
                         <FormLabel>Description (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="A short description of this handle." {...field} disabled={isSubmitting} />
+                          <Textarea placeholder="A short description of this handle." {...field} disabled={isSubmittingForm} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {isSubmitting ? "Adding..." : "Add Handle"}
+                  <Button type="submit" disabled={isSubmittingForm}>
+                    {isSubmittingForm ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isSubmittingForm ? "Adding..." : "Add Handle"}
                   </Button>
                 </form>
               </Form>
