@@ -70,7 +70,7 @@ export default async function HomePage() {
             </Button>
           </Link>
           <Link href="/dashboard/content-hub">
-             <Button size="lg" variant="outline">
+             <Button size="lg">
                <BotMessageSquare className="mr-2 h-5 w-5" />
                Content Hub
              </Button>
