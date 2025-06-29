@@ -5,9 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { Trash2, Facebook, Youtube, Github, FileText, BotMessageSquare, Globe, Pencil } from 'lucide-react';
+import { Trash2, Facebook, Youtube, Github, FileText, BotMessageSquare, Globe, Pencil, Instagram, Linkedin } from 'lucide-react';
 import type { IContentHandle } from '@/models/ContentHandle';
 import { cn } from '@/lib/utils';
+
+// Specific icon for X/Twitter as it's not in lucide-react
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+);
+
 
 interface ContentHandleCardProps {
   handle: IContentHandle;
@@ -24,7 +32,7 @@ interface HandleVisuals {
 const getHandleVisuals = (link: string): HandleVisuals => {
   try {
     const url = new URL(link);
-    const hostname = url.hostname.toLowerCase();
+    const hostname = url.hostname.toLowerCase().replace('www.', ''); // Normalize hostname
 
     if (hostname.includes('facebook.com')) {
       return { Icon: Facebook, iconBgClass: 'bg-blue-600', iconColorClass: 'text-white' };
@@ -34,6 +42,15 @@ const getHandleVisuals = (link: string): HandleVisuals => {
     }
     if (hostname.includes('github.com')) {
       return { Icon: Github, iconBgClass: 'bg-gray-800', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('x.com') || hostname.includes('twitter.com')) {
+        return { Icon: XIcon, iconBgClass: 'bg-black', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('instagram.com')) {
+        return { Icon: Instagram, iconBgClass: 'bg-pink-600', iconColorClass: 'text-white' };
+    }
+    if (hostname.includes('linkedin.com')) {
+        return { Icon: Linkedin, iconBgClass: 'bg-sky-700', iconColorClass: 'text-white' };
     }
     if (hostname.includes('noorix') || hostname.includes('vercel.app')) {
       return { Icon: BotMessageSquare, iconBgClass: 'bg-primary', iconColorClass: 'text-primary-foreground' };
@@ -75,15 +92,18 @@ export function ContentHandleCard({ handle, onHandleDeleted, onEdit }: ContentHa
   };
   
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Prevent navigation if any button inside the card is clicked
     if ((e.target as HTMLElement).closest('button')) {
       e.preventDefault();
       return;
     }
     
+    // Open in new tab on Ctrl/Cmd click or middle mouse click
     if (e.ctrlKey || e.metaKey || e.button === 1) {
       window.open(handle.link, '_blank');
       e.preventDefault();
     } else {
+       // For a normal left-click, open in new tab and don't navigate the current tab
        window.open(handle.link, '_blank');
        e.preventDefault();
     }
