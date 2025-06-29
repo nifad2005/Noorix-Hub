@@ -7,18 +7,27 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ROLES } from '@/config/roles';
 import mongoose from 'mongoose';
 
-// Seed data function
+// Seed data function - now returns plain JavaScript objects
 async function seedInitialTool(userId: string) {
-    const initialTool = {
+    const initialToolData = {
         title: "AI-Powered Blog Post",
         description: "Generate a complete blog post draft from a simple topic or prompt.",
         href: "/dashboard/content-studio/blog",
-        icon: "Edit",
+        icon: "Edit", // This should be a valid lucide-react icon name
         createdBy: new mongoose.Types.ObjectId(userId)
     };
-    const newTool = new ContentTool(initialTool);
-    await newTool.save();
-    return [newTool];
+
+    // To prevent race conditions or duplicates, check if it already exists
+    const existingTool = await ContentTool.findOne({ title: initialToolData.title }).lean();
+    if (existingTool) {
+        return [existingTool];
+    }
+    
+    const newTool = new ContentTool(initialToolData);
+    const savedTool = await newTool.save();
+    
+    // Using .toObject() is a clean way to convert a Mongoose document to a plain object
+    return [savedTool.toObject()];
 }
 
 export async function GET(request: Request) {
@@ -34,10 +43,10 @@ export async function GET(request: Request) {
 
         let tools = await ContentTool.find({}).sort({ createdAt: 'asc' }).lean();
 
-        // If no tools exist, seed the initial one for the current user (if admin/root).
+        // If no tools exist, and user is admin/root, seed the initial one.
         if (tools.length === 0 && (session.user.role === ROLES.ROOT || session.user.role === ROLES.ADMIN)) {
-            const seededTools = await seedInitialTool(session.user.id);
-            tools = seededTools.map(t => JSON.parse(JSON.stringify(t))); // convert to plain objects
+            // The seed function now returns plain objects, so no mapping is needed.
+            tools = await seedInitialTool(session.user.id);
         }
 
         return NextResponse.json(tools);
