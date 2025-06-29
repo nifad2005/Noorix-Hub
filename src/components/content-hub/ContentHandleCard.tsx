@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -32,7 +31,6 @@ const getIconForLink = (link: string) => {
   return <Globe className="h-8 w-8 text-primary" />;
 };
 
-
 export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCardProps) {
   const { toast } = useToast();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,42 +57,46 @@ export function ContentHandleCard({ handle, onHandleDeleted }: ContentHandleCard
   };
 
   return (
-    <Card className="flex flex-col h-full group relative transition-shadow hover:shadow-xl">
-      <Link href={handle.link} target="_blank" rel="noopener noreferrer" className="absolute inset-0 z-0" aria-label={`Open ${handle.name}`} />
-      <CardHeader className="flex flex-row items-start justify-between z-10">
-        <div className="flex-1 space-y-1">
-          <CardTitle className="truncate text-lg">{handle.name}</CardTitle>
-          <CardDescription className="h-10 line-clamp-2">
-            {handle.description || 'No description provided.'}
-          </CardDescription>
-        </div>
-         <AlertDialog>
-            <AlertDialogTrigger asChild onClick={(e) => e.preventDefault()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-                <span className="sr-only">Delete</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>This action cannot be undone. This will permanently delete the "{handle.name}" handle.</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-      </CardHeader>
-      <CardContent className="mt-auto z-10">
-        <div className="flex items-center justify-between">
-            {getIconForLink(handle.link)}
-            <LinkIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-        </div>
-      </CardContent>
-    </Card>
+    <div className="relative h-full group">
+      <Link href={handle.link} target="_blank" rel="noopener noreferrer" className="block h-full cursor-pointer" aria-label={`Open ${handle.name}`}>
+        <Card className="flex flex-col h-full transition-shadow group-hover:shadow-xl">
+          <CardHeader>
+              <CardTitle className="truncate text-lg">{handle.name}</CardTitle>
+              <CardDescription className="h-10 line-clamp-2">
+                {handle.description || 'No description provided.'}
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="mt-auto">
+            <div className="flex items-center justify-between">
+              {getIconForLink(handle.link)}
+              <LinkIcon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+      
+      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={isDeleting}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+              <span className="sr-only">Delete</span>
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>This action cannot be undone. This will permanently delete the "{handle.name}" handle.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
   );
 }
