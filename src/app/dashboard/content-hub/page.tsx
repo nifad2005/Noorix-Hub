@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -287,10 +286,10 @@ export default function ContentHubPage() {
             ) : (
              <Droppable droppableId="handles">
                 {(provided) => (
-                    <div 
+                    <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        className="flex flex-wrap -m-3"
                     >
                         {handles.map((handle, index) => (
                             <Draggable key={handle._id as string} draggableId={handle._id as string} index={index}>
@@ -299,6 +298,7 @@ export default function ContentHubPage() {
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
+                                        className="w-full p-3 md:w-1/2 lg:w-1/3"
                                      >
                                         <ContentHandleCard 
                                             handle={handle} 
