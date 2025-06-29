@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, PlusCircle, AlertCircle, Inbox, Lightbulb, Pencil } from "lucide-react";
+import { Loader2, PlusCircle, AlertCircle, Inbox, Lightbulb } from "lucide-react";
 import type { IContentHandle } from "@/models/ContentHandle";
 import { ContentHandleCard } from "@/components/content-hub/ContentHandleCard";
 import { ROLES } from "@/config/roles";
@@ -55,7 +55,6 @@ export default function ContentHubPage() {
     defaultValues: { name: "", link: "", description: "" },
   });
 
-
   const canManageContent = user?.role === ROLES.ROOT || user?.role === ROLES.ADMIN;
 
   const fetchHandles = useCallback(async () => {
@@ -76,6 +75,11 @@ export default function ContentHubPage() {
       setIsLoadingData(false);
     }
   }, []);
+  
+  const handleCardClick = (handle: IContentHandle) => {
+    setActiveHandleId(handle._id as string);
+    window.open(handle.link, '_blank');
+  }
 
   useEffect(() => {
     if (!authLoading) {
@@ -155,7 +159,7 @@ export default function ContentHubPage() {
   };
   
   const onDragEnd = async (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source } = result;
 
     if (!destination) {
       return;
@@ -290,7 +294,7 @@ export default function ContentHubPage() {
                     <div
                         {...provided.droppableProps}
                         ref={provided.innerRef}
-                        className="flex flex-wrap -m-3"
+                        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
                     >
                         {handles.map((handle, index) => (
                             <Draggable key={handle._id as string} draggableId={handle._id as string} index={index}>
@@ -299,14 +303,13 @@ export default function ContentHubPage() {
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}
-                                        className="w-full p-3 md:w-1/2 lg:w-1/3"
                                      >
                                         <ContentHandleCard 
                                             handle={handle} 
                                             onHandleDeleted={onHandleDeleted}
                                             onEdit={() => openEditDialog(handle)}
                                             isActive={handle._id === activeHandleId}
-                                            onCardClick={() => setActiveHandleId(handle._id as string)}
+                                            onCardClick={() => handleCardClick(handle)}
                                         />
                                      </div>
                                 )}
